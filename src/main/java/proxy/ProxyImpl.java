@@ -224,7 +224,7 @@ public class ProxyImpl implements IProxy, Runnable {
 			}
 			
 			
-			for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getReadQuorum())) {
+			for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getWriteQuorum())) {
 				if(server.isOnline()) {
 					request.setVersion(mostRecentVersionNumber);
 					Socket socket;
