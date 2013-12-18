@@ -193,16 +193,16 @@ public class ProxyImpl implements IProxy, Runnable {
 	public MessageResponse upload(UploadRequest request) throws IOException {
 		if(currentUser != null) {
 			int mostRecentVersionNumber = 0;
-			if(proxyCli.getReadQuorum() == null){
-				//if no quorums were built yet, then set up the quorums
-				proxyCli.buildQuorums();
+			
+			if(proxyCli.getReadQuorum()==-1 || proxyCli.getWriteQuorum()==-1){
+				proxyCli.initQuorums(proxyCli.getReadQuorum(),proxyCli.getWriteQuorum());
 			}
 			
 			//checking the most recent file version number for the file in the upload request
-			for(FileServerModel Nr : proxyCli.getReadQuorum()){
-				if(Nr.isOnline()){
+			for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getReadQuorum())){
+				if(server.isOnline()){
 					Socket socket;
-					socket = new Socket(Nr.getAddress(),Nr.getPort());
+					socket = new Socket(server.getAddress(),server.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(new VersionRequest(request.getFilename()));
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
@@ -222,12 +222,13 @@ public class ProxyImpl implements IProxy, Runnable {
 					socket.close();
 				}
 			}
-			//-----------------------------------------------------------------
 			
-			for(FileServerModel Nw : proxyCli.getWriteQuorum()) {
-				if(Nw.isOnline()) {
+			
+			for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getReadQuorum())) {
+				if(server.isOnline()) {
+					request.setVersion(mostRecentVersionNumber);
 					Socket socket;
-					socket = new Socket(Nw.getAddress(),Nw.getPort());
+					socket = new Socket(server.getAddress(),server.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(request);
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
@@ -235,8 +236,8 @@ public class ProxyImpl implements IProxy, Runnable {
 						Object responseObj = input.readObject();
 						if(responseObj instanceof MessageResponse) {
 							MessageResponse response = (MessageResponse)responseObj;
-							proxyCli.increaseUsage(Nw,request.getContent().length);
-							proxyCli.addToFileList(Nw, request.getFilename());
+							proxyCli.increaseUsage(server,request.getContent().length);
+							proxyCli.addToFileList(server, request.getFilename());
 							System.out.println("Proxy: "+response.toString());
 						}
 					} catch (ClassNotFoundException e) {

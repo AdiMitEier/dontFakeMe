@@ -42,8 +42,8 @@ public class ProxyCliImpl implements IProxyCli {
 	private List<String> userNames;
 	private List<UserModel> users;
 	private List<FileServerModel> fileServers;
-	private List<FileServerModel> readQuorum;
-	private List<FileServerModel> writeQuorum;
+	private int readQuorum;
+	private int writeQuorum;
 	
 	private DatagramSocket datagramSocket;
 	private ServerSocket serverSocket;
@@ -203,36 +203,26 @@ public class ProxyCliImpl implements IProxyCli {
 		return fileServers;
 	}
 	
-	public List<FileServerModel> getReadQuorum() {
-		return readQuorum;
-	}
-	
-	public List<FileServerModel> getWriteQuorum() {
-		return writeQuorum;
+	//quorums always satisfy the following constraints:
+	//readQuorum.size() + writeQuorum.size() > N
+	//writeQuorum.size() > N/2
+	public int getReadQuorum() {
+		int N = fileServers.size();
+		return (int)Math.ceil(N/2);
 	}
 	
 	//quorums always satisfy the following constraints:
 	//readQuorum.size() + writeQuorum.size() > N
 	//writeQuorum.size() > N/2
-	public void buildQuorums(){
-
+	public int getWriteQuorum() {
 		int N = fileServers.size();
-		readQuorum = new ArrayList<FileServerModel>();
-		writeQuorum = new ArrayList<FileServerModel>();
-		
-		if(N%2==0){
-			for(int i = 0;i<N/2;i++)
-				readQuorum.add(fileServers.get(i));
-			for(int i = N/2-1;i<N;i++)
-				writeQuorum.add(fileServers.get(i));
-		} else{
-			for(int i = 0;i<Math.ceil(N/2);i++)
-				readQuorum.add(fileServers.get(i));
-			for(int i = (int) Math.ceil((N/2)-1);i<N;i++)
-				writeQuorum.add(fileServers.get(i));
-		}
+		return (int)Math.floor((N/2) + 1);
 	}
-
+	
+	public void initQuorums(int rQ, int wQ){
+		this.readQuorum = rQ;
+		this.writeQuorum = wQ;
+	}
 	private int getIndexOfFileServer(int port) {
 		for(FileServerModel fileServer : fileServers) {
 			if(fileServer.getPort() == port) {
