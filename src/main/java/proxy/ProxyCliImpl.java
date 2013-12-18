@@ -256,6 +256,20 @@ public class ProxyCliImpl implements IProxyCli {
 		server.getFileList().add(fileName);
 	}
 
+	public List<FileServerModel> getFileServersWithLowestUsage(int amount) {
+		List<FileServerModel> lowestUsage = new ArrayList<FileServerModel>(fileServers);
+		for(int i = 1; i< lowestUsage.size();i++){
+			FileServerModel tmp = lowestUsage.get(i);
+            int j = i;
+            while(j>0 && lowestUsage.get(j-1).getUsage()>tmp.getUsage()){
+            	lowestUsage.set(j,lowestUsage.get(j-1));
+                j--;
+            }
+            lowestUsage.set(j,tmp);
+        }
+		return lowestUsage.subList(0,amount);
+	}
+	
 	@Override
 	@Command
 	public Response fileservers() throws IOException {
