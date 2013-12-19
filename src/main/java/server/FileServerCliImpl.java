@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -25,6 +26,7 @@ import message.Response;
 import message.request.*;
 import message.response.*;
 import model.DownloadTicket;
+import model.FileModel;
 
 public class FileServerCliImpl implements IFileServerCli, IFileServer{
 
@@ -36,6 +38,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	private int alive;
 	private String host;
 	private String dir;
+	private Set<FileModel> fileList; //STAGE 1
 	
 	private DatagramSocket datagramSocket;
 	private ServerSocket serverSocket;
@@ -58,6 +61,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		this.config = config;
 		this.shell = shell;
 		readConfig();
+		initFileList(); //STAGE 1
 		timer = new Timer();
         timer.schedule(new AliveMessages(), 0l, (long)alive);
         worker.execute(new TcpListener(this));
@@ -72,6 +76,20 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		alive = config.getInt("fileserver.alive");
 		host = config.getString("proxy.host");
 		dir = config.getString("fileserver.dir");
+	}
+	
+	//STAGE 1
+	private void initFileList() {
+		fileList = new HashSet<FileModel>();
+		File folder = new File(dir);
+		File[] listOfFiles = folder.listFiles(); 
+		for (int i = 0; i < listOfFiles.length; i++) 
+		{
+			if (listOfFiles[i].isFile()) 
+			{
+				fileList.add(new FileModel(listOfFiles[i].getName(),0));
+			}
+		}
 	}
 	
 	private class AliveMessages extends TimerTask {
@@ -156,17 +174,8 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 
 	@Override
 	public Response list() throws IOException {
-		Set<String> list = new HashSet<String>();
-		File folder = new File(dir);
-		File[] listOfFiles = folder.listFiles(); 
-		for (int i = 0; i < listOfFiles.length; i++) 
-		{
-			if (listOfFiles[i].isFile()) 
-			{
-				list.add(listOfFiles[i].getName());
-			}
-		}
-		return new ListResponse(list);
+		//STAGE 1
+		return new ListResponse(this.fileList);
 	}
 
 	@Override
@@ -193,13 +202,25 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 
 	@Override
 	public Response version(VersionRequest request) throws IOException {
-		return new VersionResponse(request.getFilename(),1);
+		//STAGE 1
+		for(FileModel file : fileList){
+			if(file.getFilename().equals(request.getFilename()))
+				return new VersionResponse(file.getFilename(),file.getVersion());
+		}
+		return new MessageResponse("File does not exist, no version could be retrieved.");
 	}
 
 	@Override
 	public MessageResponse upload(UploadRequest request) throws IOException {
 		if(!FileUtils.writeFile(dir,request.getFilename(),request.getContent())) {
 			return new MessageResponse("Cannot write file");
+		} else {
+			for(FileModel file : fileList){
+				if(file.getFilename().equals(request.getFilename()))
+					file.setVersion(file.getVersion()+1);
+				else
+					file.setVersion(1);
+			}
 		}
 		return new MessageResponse("Succesfully uploaded file to fileserver on port " + tcpPort);
 	}

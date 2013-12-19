@@ -25,6 +25,7 @@ import util.*;
 import message.Response;
 import message.request.*;
 import message.response.*;
+import model.FileModel;
 import model.FileServerInfo;
 import model.FileServerModel;
 import model.UserInfo;
@@ -152,7 +153,7 @@ public class ProxyCliImpl implements IProxyCli {
 						}
 					} else {
 						System.out.println("Proxy: New fileserver on port " + receivedPort);
-						fileServers.add(new FileServerModel(receivePacket.getAddress(),receivedPort,0,new Date(),true,new HashSet<String>()));
+						fileServers.add(new FileServerModel(receivePacket.getAddress(),receivedPort,0,new Date(),true,new HashSet<FileModel>()));
 						refreshFileListOfServer(receivePacket.getAddress(),receivedPort);
 					}
 				}
@@ -173,7 +174,7 @@ public class ProxyCliImpl implements IProxyCli {
 				Object responseObj = input.readObject();
 				if(responseObj instanceof ListResponse) {
 					ListResponse response = (ListResponse)responseObj;
-					for(String file : response.getFileNames()) {
+					for(FileModel file : response.getFileNames()) {
 						addToFileList(server,file);
 					}
 				}
@@ -206,6 +207,7 @@ public class ProxyCliImpl implements IProxyCli {
 	//quorums always satisfy the following constraints:
 	//readQuorum.size() + writeQuorum.size() > N
 	//writeQuorum.size() > N/2
+	//STAGE1
 	public int getReadQuorum() {
 		int N = fileServers.size();
 		return (int)Math.ceil(N/2);
@@ -214,6 +216,7 @@ public class ProxyCliImpl implements IProxyCli {
 	//quorums always satisfy the following constraints:
 	//readQuorum.size() + writeQuorum.size() > N
 	//writeQuorum.size() > N/2
+	//STAGE1
 	public int getWriteQuorum() {
 		int N = fileServers.size();
 		return (int)Math.floor((N/2) + 1);
@@ -242,8 +245,8 @@ public class ProxyCliImpl implements IProxyCli {
 		System.out.println("Proxy: Usage of fileserver on port " + server.getPort() + " is now: " + server.getUsage());
 	}
 	
-	public synchronized void addToFileList(FileServerModel server, String fileName) {
-		server.getFileList().add(fileName);
+	public synchronized void addToFileList(FileServerModel server, FileModel file) {
+		server.getFileList().add(file);
 	}
 
 	public List<FileServerModel> getFileServersWithLowestUsage(int amount) {

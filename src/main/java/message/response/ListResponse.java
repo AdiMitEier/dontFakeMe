@@ -1,6 +1,7 @@
 package message.response;
 
 import message.Response;
+import model.FileModel;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -23,13 +24,13 @@ import java.util.Set;
 public class ListResponse implements Response {
 	private static final long serialVersionUID = -7319020129445822795L;
 
-	private final Set<String> fileNames;
+	private final Set<FileModel> fileNames; //STAGE 1 changed generic from String to FileModel
 
-	public ListResponse(Set<String> fileNames) {
-		this.fileNames = Collections.unmodifiableSet(new LinkedHashSet<String>(fileNames));
+	public ListResponse(Set<FileModel> fileNames) {
+		this.fileNames = Collections.unmodifiableSet(new LinkedHashSet<FileModel>(fileNames));
 	}
 
-	public Set<String> getFileNames() {
+	public Set<FileModel> getFileNames() {
 		return fileNames;
 	}
 
@@ -40,7 +41,7 @@ public class ListResponse implements Response {
 		}
 
 		StringBuilder sb = new StringBuilder();
-		for (String fileName : getFileNames()) {
+		for (FileModel fileName : getFileNames()) {
 			sb.append(fileName).append("\n");
 		}
 		return sb.toString();

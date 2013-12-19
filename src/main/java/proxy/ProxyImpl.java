@@ -13,6 +13,7 @@ import message.request.*;
 import message.response.*;
 import message.response.LoginResponse.Type;
 import model.DownloadTicket;
+import model.FileModel;
 import model.FileServerModel;
 import model.UserModel;
 
@@ -103,7 +104,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	@Override
 	public Response list() throws IOException {
 		if(currentUser != null) {
-			Set<String> combinedFileList = new HashSet<String>();
+			Set<FileModel> combinedFileList = new HashSet<FileModel>();
 			for(FileServerModel server : proxyCli.getFileServers()) {
 				if(server.isOnline()) {
 					combinedFileList.addAll(server.getFileList());
@@ -190,6 +191,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	}
 
 	@Override
+	//STAGE1
 	public MessageResponse upload(UploadRequest request) throws IOException {
 		if(currentUser != null) {
 			int mostRecentVersionNumber = 0;
@@ -223,7 +225,7 @@ public class ProxyImpl implements IProxy, Runnable {
 				}
 			}
 			
-			
+			//uploading file with new version number
 			for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getWriteQuorum())) {
 				if(server.isOnline()) {
 					request.setVersion(mostRecentVersionNumber);
@@ -237,7 +239,7 @@ public class ProxyImpl implements IProxy, Runnable {
 						if(responseObj instanceof MessageResponse) {
 							MessageResponse response = (MessageResponse)responseObj;
 							proxyCli.increaseUsage(server,request.getContent().length);
-							proxyCli.addToFileList(server, request.getFilename());
+							proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber));
 							System.out.println("Proxy: "+response.toString());
 						}
 					} catch (ClassNotFoundException e) {

@@ -11,10 +11,10 @@ public class FileServerModel {
 	private long usage;
 	private Date alive;
 	private boolean online;
-	private Set<String> fileList;
+	private Set<FileModel> fileList;
 	
 	public FileServerModel(InetAddress address, int port, long usage,
-			Date alive, boolean online, Set<String> fileList) {
+			Date alive, boolean online, Set<FileModel> fileList) {
 		super();
 		this.setAddress(address);
 		this.setPort(port);
@@ -64,11 +64,11 @@ public class FileServerModel {
 		this.online = online;
 	}
 
-	public Set<String> getFileList() {
+	public Set<FileModel> getFileList() {
 		return fileList;
 	}
 
-	public void setFileList(Set<String> fileList) {
+	public void setFileList(Set<FileModel> fileList) {
 		this.fileList = fileList;
 	}
 }
