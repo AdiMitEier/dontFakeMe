@@ -1,7 +1,11 @@
 package model;
 
+import java.io.Serializable;
+
 //STAGE 1
-public class FileModel {
+public class FileModel implements Serializable {
+	private static final long serialVersionUID = 8140560012551898065L;
+	
 	private String filename;
 	private int version;
 	
