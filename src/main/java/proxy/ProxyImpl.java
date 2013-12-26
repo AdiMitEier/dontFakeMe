@@ -239,7 +239,7 @@ public class ProxyImpl implements IProxy, Runnable {
 						if(responseObj instanceof MessageResponse) {
 							MessageResponse response = (MessageResponse)responseObj;
 							proxyCli.increaseUsage(server,request.getContent().length);
-							proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber));
+							proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
 							System.out.println("Proxy: "+response.toString());
 						}
 					} catch (ClassNotFoundException e) {
