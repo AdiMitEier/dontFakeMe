@@ -14,6 +14,7 @@ import message.request.*;
 import message.response.*;
 import message.response.LoginResponse.Type;
 import model.DownloadTicket;
+import model.FileModel;
 
 public class ClientCliImpl implements IClientCli {
 	

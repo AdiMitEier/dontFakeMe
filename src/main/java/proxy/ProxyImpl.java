@@ -107,7 +107,16 @@ public class ProxyImpl implements IProxy, Runnable {
 			Set<FileModel> combinedFileList = new HashSet<FileModel>();
 			for(FileServerModel server : proxyCli.getFileServers()) {
 				if(server.isOnline()) {
-					combinedFileList.addAll(server.getFileList());
+					for(FileModel file : server.getFileList()){
+						boolean alreadyInList = false;
+						for(FileModel fileCombinedList : combinedFileList){
+							if(file.getFilename().equals(fileCombinedList.getFilename()))
+								alreadyInList = true;
+						}
+						if(!alreadyInList){
+							combinedFileList.add(file);
+						}
+					}
 				}
 			}
 			return new ListResponse(combinedFileList);
@@ -117,23 +126,63 @@ public class ProxyImpl implements IProxy, Runnable {
 
 	@Override
 	public Response download(DownloadTicketRequest request) throws IOException {
+		int version = 0;
 		if(currentUser != null) {
 			FileServerModel selectedServer = null;
-			for(FileServerModel server : proxyCli.getFileServers()) {
-				if(server.isOnline()) {
-					if(server.getFileList().contains(request.getFilename())) {
-						if(selectedServer == null || selectedServer.getUsage()>server.getUsage()) {
-							selectedServer = server;
-							System.out.println("Proxy: selected server on port "+selectedServer.getPort()+" Usage: "+selectedServer.getUsage());
+			
+			//if no quorums are set up than alle fileservers are asked
+			if(proxyCli.getReadQuorum()==-1 || proxyCli.getWriteQuorum()==-1){			
+				for(FileServerModel server : proxyCli.getFileServers()) {
+					if(server.isOnline()) {
+						boolean hasFile = false;
+						for(FileModel file : server.getFileList()){
+							if(file.getFilename().equals(request.getFilename()))
+								hasFile = true;
+						}
+						if(hasFile) {
+							if(selectedServer == null || selectedServer.getUsage()>server.getUsage()) {
+								selectedServer = server;
+								System.out.println("Proxy: selected server on port "+selectedServer.getPort()+" Usage: "+selectedServer.getUsage());
+							}
 						}
 					}
 				}
+			} else {
+				//if there are quorums than NR fileservers are asked for the highest version of the file
+				//the server with the highest version is the selected server
+				//STAGE 1
+				for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getReadQuorum())){
+					Socket socket = new Socket(server.getAddress(),server.getPort());
+					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+					output.writeObject(new VersionRequest(request.getFilename()));
+					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
+					try {
+						Object responseObj = input.readObject();
+						if(responseObj instanceof VersionResponse) {
+							VersionResponse response = (VersionResponse)responseObj;
+							int tmpVersion = response.getVersion();
+							if(tmpVersion >= version){
+								version = tmpVersion;
+								selectedServer = server;
+							}
+						} else if(responseObj instanceof MessageResponse) {
+							MessageResponse response = (MessageResponse)responseObj;
+							System.out.println(response.toString());
+						}
+					} catch (ClassNotFoundException e) {
+						System.out.println("ClassNotFoundException, really?");
+						socket.close();
+						return new MessageResponse("ClassNotFoundException, really?");
+					} finally {
+						socket.close();
+					}
+				}
 			}
+			
 			if(selectedServer == null) {
 				return new MessageResponse("File not available!");
 			} else {
 				long fileSize = 0;
-				int version = 0;
 				try {
 					Socket socket = new Socket(selectedServer.getAddress(),selectedServer.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());

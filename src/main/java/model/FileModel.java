@@ -26,7 +26,17 @@ public class FileModel implements Serializable {
 		this.version = version;
 	}
 	
+	@Override
 	public String toString(){
 		return this.filename;
+	}
+	
+	@Override
+	public boolean equals(Object o){
+		if(!(o instanceof FileModel)){
+			return false;
+		}
+		FileModel fm = (FileModel)o;
+		return fm.getFilename().equals(this.getFilename());
 	}
 }

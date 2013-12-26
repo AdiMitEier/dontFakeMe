@@ -1,6 +1,7 @@
 package message.request;
 
 import message.Request;
+import model.FileModel;
 
 /**
  * Requests a {@link model.DownloadTicket} in order to download a file from a file server.
@@ -15,14 +16,14 @@ import message.Request;
 public class DownloadTicketRequest implements Request {
 	private static final long serialVersionUID = 1183675324570817315L;
 
-	private final String filename;
+	private final String file;
 
-	public DownloadTicketRequest(String filename) {
-		this.filename = filename;
+	public DownloadTicketRequest(String file) {
+		this.file = file;
 	}
 
 	public String getFilename() {
-		return filename;
+		return file;
 	}
 
 	@Override
