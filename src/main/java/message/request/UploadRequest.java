@@ -3,6 +3,13 @@ package message.request;
 import message.Request;
 
 import java.nio.charset.Charset;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.Mac;
+
+import org.bouncycastle.util.encoders.Base64;
 
 /**
  * Uploads the file with the given name.
@@ -19,6 +26,7 @@ public class UploadRequest implements Request {
 	private final String filename;
 	private int version;
 	private final byte[] content;
+	private byte[] base64hash;
 
 	public UploadRequest(String filename, int version, byte[] content) {
 		this.filename = filename;
@@ -40,6 +48,31 @@ public class UploadRequest implements Request {
 
 	public byte[] getContent() {
 		return content;
+	}
+	
+	//STAGE3
+	public void setHmac(Key key){
+		Mac hmac = null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO vernuenftiges handling
+			e.printStackTrace();
+		}
+		try {
+			hmac.init(key);
+		} catch (InvalidKeyException e) {
+			// TODO vernuenftiges handling
+			e.printStackTrace();
+		}
+		byte[] message = this.toString().getBytes();
+		hmac.update(message);
+		byte[] hash = hmac.doFinal();
+		base64hash = Base64.encode(hash);
+	}
+	
+	public byte[] getKey(){
+		return this.base64hash;
 	}
 
 	@Override

@@ -127,6 +127,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	@Override
 	public Response download(DownloadTicketRequest request) throws IOException {
 		int version = 0;
+		//request.setHmac(proxyCli.getSecretKey()); //STAGE3
 		if(currentUser != null) {
 			FileServerModel selectedServer = null;
 			
@@ -242,6 +243,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	@Override
 	//STAGE1
 	public MessageResponse upload(UploadRequest request) throws IOException {
+		request.setHmac(proxyCli.getSecretKey()); //STAGE3
 		if(currentUser != null) {
 			int mostRecentVersionNumber = 0;
 			

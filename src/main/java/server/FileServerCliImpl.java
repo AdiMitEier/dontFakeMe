@@ -1,6 +1,12 @@
 package server;
 
 import java.io.File;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.Mac;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -9,13 +15,15 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.Key;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.bouncycastle.util.encoders.Base64;
 
 import util.ChecksumUtils;
 import util.Config;
@@ -36,6 +44,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	private int tcpPort;
 	private int udpPort;
 	private int alive;
+	private Key secretKey;
 	private String host;
 	private String dir;
 	private Set<FileModel> fileList; //STAGE 1
@@ -76,6 +85,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		alive = config.getInt("fileserver.alive");
 		host = config.getString("proxy.host");
 		dir = config.getString("fileserver.dir");
+		secretKey = FileUtils.readKeyFromFile(config.getString("hmac.key"));
 	}
 	
 	//STAGE 1
@@ -212,16 +222,41 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 
 	@Override
 	public MessageResponse upload(UploadRequest request) throws IOException {
-		if(!FileUtils.writeFile(dir,request.getFilename(),request.getContent())) {
-			return new MessageResponse("Cannot write file");
-		} else {
-			for(FileModel file : fileList){
-				if(file.getFilename().equals(request.getFilename()))
-					file.setVersion(file.getVersion()+1);
-				else
-					file.setVersion(1);
-			}
+		// computedHash is the HMAC of the received plaintext 
+		Mac hmac=null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		try {
+			hmac.init(secretKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return new MessageResponse("Succesfully uploaded file to fileserver on port " + tcpPort);
+		hmac.update(request.toString().getBytes());
+		
+		byte[] computedHash = hmac.doFinal();
+		byte[] receivedHash = Base64.decode(request.getKey());
+
+		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		
+		if(validHash){
+			if(!FileUtils.writeFile(dir,request.getFilename(),request.getContent())) {
+				return new MessageResponse("Cannot write file");
+			} else {
+				for(FileModel file : fileList){
+					if(file.getFilename().equals(request.getFilename()))
+						file.setVersion(file.getVersion()+1);
+					else
+						file.setVersion(1);
+				}
+			}
+			return new MessageResponse("Succesfully uploaded file to fileserver on port " + tcpPort);
+		} else {
+			return new MessageResponse("Integrity Check failed while uploading: " + request.getFilename());
+		}
 	}
 }
