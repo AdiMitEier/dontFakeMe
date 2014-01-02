@@ -71,6 +71,7 @@ public class UploadRequest implements Request {
 		base64hash = Base64.encode(hash);
 	}
 	
+	//STAGE3
 	public byte[] getKey(){
 		return this.base64hash;
 	}

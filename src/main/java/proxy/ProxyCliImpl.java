@@ -33,7 +33,8 @@ import model.UserInfo;
 import model.UserModel;
 
 public class ProxyCliImpl implements IProxyCli {
-	
+	//TODO: download funkt erst ab 2 fileservern
+	//TODO: version und upload sind schon mit hmac
 	private Config proxyConfig;
 	private Config userConfig;
 	private Shell shell;
