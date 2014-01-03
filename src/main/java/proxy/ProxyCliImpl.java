@@ -8,6 +8,12 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.rmi.AlreadyBoundException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -21,6 +27,7 @@ import java.util.concurrent.Executors;
 
 import cli.Command;
 import cli.Shell;
+import client.IClientRMI;
 import util.*;
 import message.Response;
 import message.request.*;
@@ -31,7 +38,7 @@ import model.FileServerModel;
 import model.UserInfo;
 import model.UserModel;
 
-public class ProxyCliImpl implements IProxyCli {
+public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	
 	private Config proxyConfig;
 	private Config userConfig;
@@ -43,8 +50,14 @@ public class ProxyCliImpl implements IProxyCli {
 	private List<String> userNames;
 	private List<UserModel> users;
 	private List<FileServerModel> fileServers;
-	private int readQuorum;
-	private int writeQuorum;
+	private int readQuorum = 0;
+	private int writeQuorum = 0;
+	private Config mcConfig;
+	private String bindingName;
+	private String proxyHost;
+	private int proxyRMIPort;
+	private String keysDir;
+	private Registry registry;
 	
 	private DatagramSocket datagramSocket;
 	private ServerSocket serverSocket;
@@ -69,7 +82,9 @@ public class ProxyCliImpl implements IProxyCli {
 		users = new ArrayList<UserModel>();
 		clientSockets = new ArrayList<Socket>();
 		readProxyConfig();
+		readMCConfig();
 		readUserConfig();
+		initRMI();
 		worker.execute(new TcpListener(this));
 		worker.execute(new UdpListener());
 		timer = new Timer();
@@ -84,6 +99,14 @@ public class ProxyCliImpl implements IProxyCli {
 		udpPort = proxyConfig.getInt("udp.port");
 		timeOut = proxyConfig.getInt("fileserver.timeout");
 		checkPeriod = proxyConfig.getInt("fileserver.checkPeriod");
+	}
+	
+	private void readMCConfig() {
+		mcConfig = new Config("mc");
+		bindingName = mcConfig.getString("binding.name");
+		proxyHost = mcConfig.getString("proxy.host");
+		proxyRMIPort = mcConfig.getInt("proxy.rmi.port");
+		keysDir = mcConfig.getString("keys.dir");
 	}
 	
 	private void readUserConfig() {
@@ -105,6 +128,17 @@ public class ProxyCliImpl implements IProxyCli {
 		userConfig = new Config("user");
 		for(String userName : userNames) {
 			users.add(new UserModel(userName, userConfig.getString(userName+".password"),false,userConfig.getInt(userName+".credits")));
+		}
+	}
+	
+	private void initRMI() {
+		try {
+			registry = LocateRegistry.createRegistry(proxyRMIPort);
+			registry.rebind(bindingName, this);
+			UnicastRemoteObject.exportObject(this, 0);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
@@ -296,9 +330,71 @@ public class ProxyCliImpl implements IProxyCli {
 			socket.close();
 		}
 		worker.shutdown();
+		try {
+			registry.unbind(bindingName);
+			UnicastRemoteObject.unexportObject(this,false);
+		} catch (NotBoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		shellThread.interrupt();
 		shell.close();
 		System.in.close();
 		return new MessageResponse("Proxy exited");
+	}
+
+	@Override
+	public MessageResponse readQuorum() {
+		/*for(UserModel user : users) {
+			for(String file : user.getSubscriptions()) {
+				try {
+					user.getClientObject().notifySubscription(file);
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}*/
+		return new MessageResponse("Read-Quorum is set to "+String.valueOf(readQuorum)+".");
+	}
+
+	@Override
+	public MessageResponse writeQuorum() throws RemoteException {
+		return new MessageResponse("Write-Quorum is set to "+String.valueOf(writeQuorum)+".");
+	}
+
+	@Override
+	public TopThreeDownloadsResponse topThreeDownloads() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public MessageResponse subscribe(IClientRMI client, String userName, String file) throws RemoteException {
+		UserModel user = getUser(userName);
+		user.setClientObject(client);
+		if(!user.getSubscriptions().add(file)) return new MessageResponse("Already subscribed");
+		else return new MessageResponse("Successfully subscribed");
+	}
+	
+	private UserModel getUser(String userName) {
+		System.out.println("searching for " + userName);
+		for(UserModel user : users) {
+			if(user.getName().equals(userName)) return user;
+		}
+		System.out.println(userName + " not found");
+		return null;
+	}
+
+	@Override
+	public MessageResponse getProxyPublicKey() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public MessageResponse setUserPublicKey() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

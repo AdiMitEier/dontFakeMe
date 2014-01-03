@@ -141,4 +141,10 @@ public interface IClientCli {
 	 * @throws IOException if an I/O error occurs
 	 */
 	MessageResponse exit() throws IOException;
+	
+	MessageResponse readQuorum() throws IOException;
+	
+	MessageResponse writeQuorum() throws IOException;
+	
+	MessageResponse subscribe(String fileName) throws IOException;
 }

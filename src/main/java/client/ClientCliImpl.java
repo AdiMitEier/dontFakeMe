@@ -4,7 +4,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.rmi.NoSuchObjectException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
+import proxy.IProxyRMI;
 import util.Config;
 import util.FileUtils;
 import cli.Command;
@@ -16,13 +23,21 @@ import message.response.LoginResponse.Type;
 import model.DownloadTicket;
 import model.FileModel;
 
-public class ClientCliImpl implements IClientCli {
+public class ClientCliImpl implements IClientCli, IClientRMI {
 	
 	private Config config;
 	private Shell shell;
 	private String dir;
 	private String host;
 	private int tcpPort;
+	private Config mcConfig;
+	private String bindingName;
+	private String proxyHost;
+	private int proxyRMIPort;
+	private String keysDir;
+	private String loggedInUserName;
+	Registry registry;
+	IProxyRMI proxyRMI;
 	
 	Socket clientSocket = null;
 	
@@ -37,15 +52,44 @@ public class ClientCliImpl implements IClientCli {
 		this.config = config;
 		this.shell = shell;
 		readConfig();
+		readMCConfig();
 		this.shell.register(this);
 		shellThread = new Thread(this.shell);
 		shellThread.start();
+		try {
+			UnicastRemoteObject.exportObject(this, 0);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private void readConfig() {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
 		dir = config.getString("download.dir");
+	}
+	
+	private void readMCConfig() {
+		mcConfig = new Config("mc");
+		bindingName = mcConfig.getString("binding.name");
+		proxyHost = mcConfig.getString("proxy.host");
+		proxyRMIPort = mcConfig.getInt("proxy.rmi.port");
+		keysDir = mcConfig.getString("keys.dir");
+	}
+	
+	private boolean initRMI() {
+		if(proxyRMI != null) return true;
+		try {
+			registry = LocateRegistry.getRegistry(proxyHost,proxyRMIPort);
+			proxyRMI = (IProxyRMI)registry.lookup(bindingName);
+			return true;
+		} catch (RemoteException e) {
+			System.out.println("No proxy available, cannot init RMI now");
+		} catch (NotBoundException e) {
+			System.out.println("No proxy available, cannot init RMI now");
+		}
+		return false;
 	}
 	
 	@Override
@@ -65,6 +109,7 @@ public class ClientCliImpl implements IClientCli {
 				if(response.getType() == Type.WRONG_CREDENTIALS) {
 					clientSocket.close();
 				}
+				loggedInUserName = username;
 				return response;
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
@@ -242,10 +287,40 @@ public class ClientCliImpl implements IClientCli {
 	@Command
 	public MessageResponse exit() throws IOException {
 		System.out.println("Shutting down client now");
+		logout();
+		loggedInUserName = null;
 		if(clientSocket != null) clientSocket.close();
+		UnicastRemoteObject.unexportObject(this,false);
 		shellThread.interrupt();
 		shell.close();
 		System.in.close();
 		return new MessageResponse("Client exited");
+	}
+
+	@Override
+	@Command
+	public MessageResponse readQuorum() throws IOException {
+		if(initRMI()) return proxyRMI.readQuorum();
+		else return new MessageResponse("Cannot connect to Proxy via RMI");
+	}
+
+	@Override
+	@Command
+	public MessageResponse writeQuorum() throws IOException {
+		if(initRMI()) return proxyRMI.writeQuorum();
+		else return new MessageResponse("Cannot connect to Proxy via RMI");
+	}
+
+	@Override
+	public void notifySubscription(String file) throws RemoteException {
+		System.out.println("NOTIFIED " + file);
+	}
+
+	@Override
+	@Command
+	public MessageResponse subscribe(String fileName) throws IOException {
+		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
+		if(initRMI()) return proxyRMI.subscribe(this,loggedInUserName,fileName);
+		else return new MessageResponse("Cannot connect to Proxy via RMI");
 	}
 }

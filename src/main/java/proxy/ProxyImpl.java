@@ -309,6 +309,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	public MessageResponse logout() throws IOException {
 		if(currentUser != null) {
 			currentUser.setOnline(false);
+			currentUser.getSubscriptions().clear();
 			currentUser = null;
 			return new MessageResponse("Successfully logged out.");
 		}
