@@ -53,8 +53,8 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	private List<String> userNames;
 	private List<UserModel> users;
 	private List<FileServerModel> fileServers;
-	private int readQuorum = 0;
-	private int writeQuorum = 0;
+	private int readQuorum = -1;
+	private int writeQuorum = -1;
 	private Config mcConfig;
 	private String bindingName;
 	private String proxyHost;
@@ -252,11 +252,8 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	//writeQuorum.size() > N/2
 	//STAGE1
 	public int getReadQuorum() {
-		int N = fileServers.size();
-		if(N>1)
-			return (int)Math.ceil(N/2);
-		else
-			return 1;
+		return readQuorum;
+
 	}
 	
 	//quorums always satisfy the following constraints:
@@ -264,13 +261,16 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	//writeQuorum.size() > N/2
 	//STAGE1
 	public int getWriteQuorum() {
-		int N = fileServers.size();
-		return (int)Math.floor((N/2) + 1);
+		return writeQuorum;
 	}
 	
 	public void initQuorums(int rQ, int wQ){
-		this.readQuorum = rQ;
-		this.writeQuorum = wQ;
+		int N = fileServers.size();
+		if(N>1)
+			readQuorum = (int)Math.ceil(N/2);
+		else
+			readQuorum = 1;
+		writeQuorum = (int)Math.floor((N/2)+1);
 	}
 	private int getIndexOfFileServer(int port) {
 		for(FileServerModel fileServer : fileServers) {
