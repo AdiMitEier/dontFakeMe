@@ -26,6 +26,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	public ProxyImpl(Socket socket, ProxyCliImpl proxyCli) {
 		this.socket = socket;
 		this.proxyCli = proxyCli;
+		
 	}
 	
 	@Override
@@ -74,6 +75,7 @@ public class ProxyImpl implements IProxy, Runnable {
 
 	@Override
 	public LoginResponse login(LoginRequest request) throws IOException {
+		System.out.println(proxyCli.getReadQuorum() + " "+ proxyCli.getWriteQuorum());
 		for(UserModel user : proxyCli.getUsers()) {
 			if(user.getName().compareTo(request.getUsername()) == 0 && user.getPassword().compareTo(request.getPassword()) == 0) {
 				user.setOnline(true);
@@ -127,13 +129,18 @@ public class ProxyImpl implements IProxy, Runnable {
 	@Override
 	public Response download(DownloadTicketRequest request) throws IOException {
 		int version = 0;
+		//request.setHmac(proxyCli.getSecretKey()); //STAGE3
 		if(currentUser != null) {
 			FileServerModel selectedServer = null;
 			
-			//if no quorums are set up than alle fileservers are asked
-			if(proxyCli.getReadQuorum()==-1 || proxyCli.getWriteQuorum()==-1){			
+			System.out.println(proxyCli.getReadQuorum() + " " + proxyCli.getWriteQuorum());
+			
+			//if no quorums are set up than all fileservers are asked
+			if(proxyCli.getReadQuorum()==-1 || proxyCli.getWriteQuorum()==-1){
+				System.out.println("quorum if");
 				for(FileServerModel server : proxyCli.getFileServers()) {
 					if(server.isOnline()) {
+						System.out.println("server wird online erkannt");
 						boolean hasFile = false;
 						for(FileModel file : server.getFileList()){
 							if(file.getFilename().equals(request.getFilename()))
@@ -154,7 +161,9 @@ public class ProxyImpl implements IProxy, Runnable {
 				for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getReadQuorum())){
 					Socket socket = new Socket(server.getAddress(),server.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(new VersionRequest(request.getFilename()));
+					VersionRequest vr = new VersionRequest(request.getFilename());
+					vr.setHmac(proxyCli.getSecretKey());
+					output.writeObject(vr);
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 					try {
 						Object responseObj = input.readObject();
@@ -207,26 +216,6 @@ public class ProxyImpl implements IProxy, Runnable {
 					if(currentUser.getCredits() < fileSize) {
 						return new MessageResponse("You don't have enough credits to download this file!");
 					}
-					socket = new Socket(selectedServer.getAddress(),selectedServer.getPort());
-					output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(new VersionRequest(request.getFilename()));
-					input = new ObjectInputStream(socket.getInputStream());
-					try {
-						Object responseObj = input.readObject();
-						if(responseObj instanceof VersionResponse) {
-							VersionResponse response = (VersionResponse)responseObj;
-							version = response.getVersion();
-						} else if(responseObj instanceof MessageResponse) {
-							MessageResponse response = (MessageResponse)responseObj;
-							System.out.println(response.toString());
-						}
-					} catch (ClassNotFoundException e) {
-						System.out.println("ClassNotFoundException, really?");
-						socket.close();
-						return new MessageResponse("ClassNotFoundException, really?");
-					} finally {
-						socket.close();
-					}
 				} catch(IOException e) {
 					return new MessageResponse("Could not connect to fileserver.");
 				}
@@ -242,6 +231,8 @@ public class ProxyImpl implements IProxy, Runnable {
 	@Override
 	//STAGE1
 	public MessageResponse upload(UploadRequest request) throws IOException {
+		
+		System.out.println(request.toString());
 		if(currentUser != null) {
 			int mostRecentVersionNumber = 0;
 			
@@ -255,7 +246,9 @@ public class ProxyImpl implements IProxy, Runnable {
 					Socket socket;
 					socket = new Socket(server.getAddress(),server.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(new VersionRequest(request.getFilename()));
+					VersionRequest vr = new VersionRequest(request.getFilename());
+					vr.setHmac(proxyCli.getSecretKey());
+					output.writeObject(vr);
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 					try {
 						Object responseObj = input.readObject();
@@ -265,19 +258,36 @@ public class ProxyImpl implements IProxy, Runnable {
 								mostRecentVersionNumber = response.getVersion();
 							}
 						}
+						int errorcount = 0;
+						while(responseObj instanceof HmacErrorResponse){
+							output.writeObject(vr);
+							responseObj = input.readObject();
+							if(responseObj instanceof VersionResponse){
+								VersionResponse response = (VersionResponse)responseObj;
+								if(response.getVersion()>mostRecentVersionNumber){
+									mostRecentVersionNumber = response.getVersion();
+								}
+								break;
+							}
+							if(errorcount > 4){
+								System.out.println("Failed at verifing message Integrity. Debug:VersionResponse");
+								socket.close();
+								return new MessageResponse("Failed at verifying message Integrity. Debug:VersionResponse");
+							}
+						}
 					} catch (ClassNotFoundException e) {
 						System.out.println("ClassNotFoundException, really?");
 						socket.close();
 						return new MessageResponse("ClassNotFoundException, really?");
-					}
+					} 
 					socket.close();
 				}
 			}
-			
+			request.setVersion(mostRecentVersionNumber);
+			request.setHmac(proxyCli.getSecretKey()); //STAGE3
 			//uploading file with new version number
 			for(FileServerModel server : proxyCli.getFileServersWithLowestUsage(proxyCli.getWriteQuorum())) {
 				if(server.isOnline()) {
-					request.setVersion(mostRecentVersionNumber);
 					Socket socket;
 					socket = new Socket(server.getAddress(),server.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
@@ -291,6 +301,23 @@ public class ProxyImpl implements IProxy, Runnable {
 							proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
 							System.out.println("Proxy: "+response.toString());
 						}
+						int errorcount = 0;
+						while(responseObj instanceof HmacErrorResponse){
+							output.writeObject(request);
+							responseObj = input.readObject();
+							if(responseObj instanceof MessageResponse){
+								MessageResponse response = (MessageResponse)responseObj;
+								proxyCli.increaseUsage(server,request.getContent().length);
+								proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
+								System.out.println("Proxy: "+response.toString());
+								break;
+							}
+							if(errorcount > 4){
+								System.out.println("Failed at verifing message Integrity. Debug:UploadResponse");
+								socket.close();
+								return new MessageResponse("Failed at verifying message Integrity. Debug:UploadResponse");
+							}
+						}	
 					} catch (ClassNotFoundException e) {
 						System.out.println("ClassNotFoundException, really?");
 						socket.close();

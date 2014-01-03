@@ -1,6 +1,12 @@
 package server;
 
 import java.io.File;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.Mac;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -9,19 +15,22 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.Key;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.bouncycastle.util.encoders.Base64;
+
 import util.ChecksumUtils;
 import util.Config;
 import util.FileUtils;
 import cli.Command;
 import cli.Shell;
+import message.Request;
 import message.Response;
 import message.request.*;
 import message.response.*;
@@ -36,6 +45,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	private int tcpPort;
 	private int udpPort;
 	private int alive;
+	private Key secretKey;
 	private String host;
 	private String dir;
 	private Set<FileModel> fileList; //STAGE 1
@@ -76,6 +86,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		alive = config.getInt("fileserver.alive");
 		host = config.getString("proxy.host");
 		dir = config.getString("fileserver.dir");
+		secretKey = FileUtils.readKeyFromFile(config.getString("hmac.key"));
 	}
 	
 	//STAGE 1
@@ -202,26 +213,88 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 
 	@Override
 	public Response version(VersionRequest request) throws IOException {
-		//STAGE 1
-		for(FileModel file : fileList){
-			if(file.getFilename().equals(request.getFilename()))
-				return new VersionResponse(file.getFilename(),file.getVersion());
+		Mac hmac=null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		try {
+			hmac.init(secretKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return new MessageResponse("File does not exist, no version could be retrieved.");
+		hmac.update(request.toString().getBytes());
+		
+		byte[] computedHash = hmac.doFinal();
+		byte[] receivedHash = Base64.decode(request.getKey());
+		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		
+		//STAGE 1
+		if(validHash){
+			for(FileModel file : fileList){
+				if(file.getFilename().equals(request.getFilename()))
+					return new VersionResponse(file.getFilename(),file.getVersion());
+			}
+			return new MessageResponse("File does not exist, no version could be retrieved.");
+		} else {
+			shell.writeLine(request.toString());
+			return new HmacErrorResponse("Integrity check failed in version Request.");
+		}
 	}
 
 	@Override
-	public MessageResponse upload(UploadRequest request) throws IOException {
-		if(!FileUtils.writeFile(dir,request.getFilename(),request.getContent())) {
-			return new MessageResponse("Cannot write file");
-		} else {
+	public Response upload(UploadRequest request) throws IOException {
+		Mac hmac=null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		try {
+			hmac.init(secretKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		hmac.update(request.toString().getBytes());
+		
+		byte[] computedHash = hmac.doFinal();
+		byte[] receivedHash = Base64.decode(request.getKey());
+		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		
+		if(validHash){
+			if(!FileUtils.writeFile(dir,request.getFilename(),request.getContent())) {
+				return new MessageResponse("Cannot write file");
+			} else {
+				boolean fileExist = false;
+				for(FileModel file : fileList){
+					//check if the file already exists in fileList
+					if(file.getFilename().equals(request.getFilename())){
+						//if yes than increase the version by one
+						file.setVersion(file.getVersion()+1);
+						fileExist = true;
+					}
+				}
+				if(!fileExist){
+					//if the file didn't exist, than add it with version number 1
+					fileList.add(new FileModel(request.getFilename(),1));
+				}
+			}
+			/*
+			//output to check if the versioning is correct
 			for(FileModel file : fileList){
 				if(file.getFilename().equals(request.getFilename()))
-					file.setVersion(file.getVersion()+1);
-				else
-					file.setVersion(1);
-			}
-		}
-		return new MessageResponse("Succesfully uploaded file to fileserver on port " + tcpPort);
+					System.out.println(file.getVersion());
+			}*/
+			
+			return new MessageResponse("Succesfully uploaded file to fileserver on port " + tcpPort);
+		} else {
+			shell.writeLine(request.toString());
+			return new HmacErrorResponse("Integrity check failed in upload Request.");
+		}	
 	}
 }

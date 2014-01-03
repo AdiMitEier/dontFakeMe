@@ -16,7 +16,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -24,6 +23,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.security.Key;
+import javax.crypto.Mac;
 
 import cli.Command;
 import cli.Shell;
@@ -39,7 +40,8 @@ import model.UserInfo;
 import model.UserModel;
 
 public class ProxyCliImpl implements IProxyCli, IProxyRMI {
-	
+	//TODO: download funkt erst ab 2 fileservern
+	//TODO: version und upload sind schon mit hmac
 	private Config proxyConfig;
 	private Config userConfig;
 	private Shell shell;
@@ -47,6 +49,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	private int udpPort;
 	private int timeOut;
 	private int checkPeriod;
+	private Key secretKey;
 	private List<String> userNames;
 	private List<UserModel> users;
 	private List<FileServerModel> fileServers;
@@ -99,6 +102,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		udpPort = proxyConfig.getInt("udp.port");
 		timeOut = proxyConfig.getInt("fileserver.timeout");
 		checkPeriod = proxyConfig.getInt("fileserver.checkPeriod");
+		secretKey = FileUtils.readKeyFromFile(proxyConfig.getString("hmac.key"));
 	}
 	
 	private void readMCConfig() {
@@ -238,13 +242,21 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		return fileServers;
 	}
 	
+	//STAGE3
+	public Key getSecretKey(){
+		return this.secretKey;
+	}
+	
 	//quorums always satisfy the following constraints:
 	//readQuorum.size() + writeQuorum.size() > N
 	//writeQuorum.size() > N/2
 	//STAGE1
 	public int getReadQuorum() {
 		int N = fileServers.size();
-		return (int)Math.ceil(N/2);
+		if(N>1)
+			return (int)Math.ceil(N/2);
+		else
+			return 1;
 	}
 	
 	//quorums always satisfy the following constraints:

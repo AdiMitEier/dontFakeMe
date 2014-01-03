@@ -240,7 +240,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		if(data == null) return new MessageResponse("Cannot read file");
 		try {
 			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new UploadRequest(filename, 1, data));
+			output.writeObject(new UploadRequest(filename, 0, data));
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			try {
 				Object responseObj = input.readObject();
