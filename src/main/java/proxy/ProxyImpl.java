@@ -26,6 +26,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	public ProxyImpl(Socket socket, ProxyCliImpl proxyCli) {
 		this.socket = socket;
 		this.proxyCli = proxyCli;
+		
 	}
 	
 	@Override
@@ -74,6 +75,7 @@ public class ProxyImpl implements IProxy, Runnable {
 
 	@Override
 	public LoginResponse login(LoginRequest request) throws IOException {
+		System.out.println(proxyCli.getReadQuorum() + " "+ proxyCli.getWriteQuorum());
 		for(UserModel user : proxyCli.getUsers()) {
 			if(user.getName().compareTo(request.getUsername()) == 0 && user.getPassword().compareTo(request.getPassword()) == 0) {
 				user.setOnline(true);
@@ -133,7 +135,7 @@ public class ProxyImpl implements IProxy, Runnable {
 			
 			System.out.println(proxyCli.getReadQuorum() + " " + proxyCli.getWriteQuorum());
 			
-			//if no quorums are set up than alle fileservers are asked
+			//if no quorums are set up than all fileservers are asked
 			if(proxyCli.getReadQuorum()==-1 || proxyCli.getWriteQuorum()==-1){
 				System.out.println("quorum if");
 				for(FileServerModel server : proxyCli.getFileServers()) {
@@ -256,11 +258,28 @@ public class ProxyImpl implements IProxy, Runnable {
 								mostRecentVersionNumber = response.getVersion();
 							}
 						}
+						int errorcount = 0;
+						while(responseObj instanceof HmacErrorResponse){
+							output.writeObject(vr);
+							responseObj = input.readObject();
+							if(responseObj instanceof VersionResponse){
+								VersionResponse response = (VersionResponse)responseObj;
+								if(response.getVersion()>mostRecentVersionNumber){
+									mostRecentVersionNumber = response.getVersion();
+								}
+								break;
+							}
+							if(errorcount > 4){
+								System.out.println("Failed at verifing message Integrity. Debug:VersionResponse");
+								socket.close();
+								return new MessageResponse("Failed at verifying message Integrity. Debug:VersionResponse");
+							}
+						}
 					} catch (ClassNotFoundException e) {
 						System.out.println("ClassNotFoundException, really?");
 						socket.close();
 						return new MessageResponse("ClassNotFoundException, really?");
-					}
+					} 
 					socket.close();
 				}
 			}
@@ -282,6 +301,23 @@ public class ProxyImpl implements IProxy, Runnable {
 							proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
 							System.out.println("Proxy: "+response.toString());
 						}
+						int errorcount = 0;
+						while(responseObj instanceof HmacErrorResponse){
+							output.writeObject(request);
+							responseObj = input.readObject();
+							if(responseObj instanceof MessageResponse){
+								MessageResponse response = (MessageResponse)responseObj;
+								proxyCli.increaseUsage(server,request.getContent().length);
+								proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
+								System.out.println("Proxy: "+response.toString());
+								break;
+							}
+							if(errorcount > 4){
+								System.out.println("Failed at verifing message Integrity. Debug:UploadResponse");
+								socket.close();
+								return new MessageResponse("Failed at verifying message Integrity. Debug:UploadResponse");
+							}
+						}	
 					} catch (ClassNotFoundException e) {
 						System.out.println("ClassNotFoundException, really?");
 						socket.close();

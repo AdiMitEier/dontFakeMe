@@ -241,12 +241,12 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 			return new MessageResponse("File does not exist, no version could be retrieved.");
 		} else {
 			shell.writeLine(request.toString());
-			return new HmacErrorResponse();
+			return new HmacErrorResponse("Integrity check failed in version Request.");
 		}
 	}
 
 	@Override
-	public MessageResponse upload(UploadRequest request) throws IOException {
+	public Response upload(UploadRequest request) throws IOException {
 		Mac hmac=null;
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
@@ -293,7 +293,8 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 			
 			return new MessageResponse("Succesfully uploaded file to fileserver on port " + tcpPort);
 		} else {
-			return new MessageResponse("Integrity Check failed while uploading: " + request.getFilename());
+			shell.writeLine(request.toString());
+			return new HmacErrorResponse("Integrity check failed in upload Request.");
 		}	
 	}
 }

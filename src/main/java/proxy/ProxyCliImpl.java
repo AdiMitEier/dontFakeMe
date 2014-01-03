@@ -219,7 +219,10 @@ public class ProxyCliImpl implements IProxyCli {
 	//STAGE1
 	public int getReadQuorum() {
 		int N = fileServers.size();
-		return (int)Math.ceil(N/2);
+		if(N>1)
+			return (int)Math.ceil(N/2);
+		else
+			return 1;
 	}
 	
 	//quorums always satisfy the following constraints:

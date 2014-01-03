@@ -90,5 +90,5 @@ public interface IFileServer {
 	 * @return message stating whether the upload was successful
 	 * @throws IOException if an I/O error occurs
 	 */
-	MessageResponse upload(UploadRequest request) throws IOException;
+	Response upload(UploadRequest request) throws IOException;
 }
