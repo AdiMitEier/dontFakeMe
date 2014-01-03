@@ -132,15 +132,13 @@ public class ProxyImpl implements IProxy, Runnable {
 		//request.setHmac(proxyCli.getSecretKey()); //STAGE3
 		if(currentUser != null) {
 			FileServerModel selectedServer = null;
-			
-			System.out.println(proxyCli.getReadQuorum() + " " + proxyCli.getWriteQuorum());
+
 			
 			//if no quorums are set up than all fileservers are asked
 			if(proxyCli.getReadQuorum()==-1 || proxyCli.getWriteQuorum()==-1){
-				System.out.println("quorum if");
+
 				for(FileServerModel server : proxyCli.getFileServers()) {
 					if(server.isOnline()) {
-						System.out.println("server wird online erkannt");
 						boolean hasFile = false;
 						for(FileModel file : server.getFileList()){
 							if(file.getFilename().equals(request.getFilename()))
