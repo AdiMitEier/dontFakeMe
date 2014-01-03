@@ -24,6 +24,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.security.Key;
+
 import javax.crypto.Mac;
 
 import cli.Command;
@@ -206,7 +207,9 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 			server.getFileList().clear();
 			Socket socket = new Socket(address,port);
 			ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-			output.writeObject(new ListRequest());
+			ListRequest lr = new ListRequest();
+			lr.setHmac(secretKey);
+			output.writeObject(lr);
 			ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 			try {
 				Object responseObj = input.readObject();
@@ -214,6 +217,23 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 					ListResponse response = (ListResponse)responseObj;
 					for(FileModel file : response.getFileNames()) {
 						addToFileList(server,file);
+					}
+				}
+				int errorcount = 0;
+				while(responseObj instanceof HmacErrorResponse){
+					output.writeObject(lr);
+					responseObj = input.readObject();
+					if(responseObj instanceof ListResponse){
+						ListResponse response = (ListResponse)responseObj;
+						for(FileModel file : response.getFileNames()) {
+							addToFileList(server,file);
+						}
+						break;
+					}
+					if(errorcount > 4){
+						System.out.println("Failed at verifing message Integrity. Debug:ListResponse");
+						socket.close();
+						break;
 					}
 				}
 			} catch (ClassNotFoundException e) {

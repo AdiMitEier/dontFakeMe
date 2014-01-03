@@ -140,7 +140,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 						Object requestObj = input.readObject();
 						if(requestObj instanceof ListRequest) {
 							ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-							output.writeObject(fileServerCli.list());
+							output.writeObject(fileServerCli.list((ListRequest)requestObj));
 						}
 						else if(requestObj instanceof UploadRequest) {
 							ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
@@ -184,9 +184,35 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	}
 
 	@Override
-	public Response list() throws IOException {
+	public Response list(ListRequest request) throws IOException {
+		//STAGE3
+		Mac hmac=null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		try {
+			hmac.init(secretKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//hmac.update(request.toString().getBytes());
+		hmac.update(request.toString().getBytes());
+		
+		byte[] computedHash = hmac.doFinal();
+		byte[] receivedHash = Base64.decode(request.getKey());
+		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
 		//STAGE 1
-		return new ListResponse(this.fileList);
+		if(validHash){
+			return new ListResponse(this.fileList);
+		} else {
+			shell.writeLine(request.toString());
+			return new HmacErrorResponse("Integrity check failed in ListRequst.");
+		}
 	}
 
 	@Override
@@ -226,6 +252,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		//hmac.update(request.toString().getBytes());
 		hmac.update(request.toString().getBytes());
 		
 		byte[] computedHash = hmac.doFinal();
