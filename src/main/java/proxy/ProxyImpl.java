@@ -180,6 +180,31 @@ public class ProxyImpl implements IProxy, Runnable {
 							MessageResponse response = (MessageResponse)responseObj;
 							System.out.println(response.toString());
 						}
+						int errorcount = 0;
+						while(responseObj instanceof HmacErrorResponse){
+							errorcount++;
+							Socket s = new Socket(server.getAddress(),server.getPort());
+							ObjectOutputStream o = new ObjectOutputStream(s.getOutputStream());
+							o.writeObject(vr);
+							ObjectInputStream i = new ObjectInputStream(s.getInputStream());
+							responseObj = i.readObject();
+							if(responseObj instanceof VersionResponse){
+								VersionResponse response = (VersionResponse)responseObj;
+								int tmpVersion = response.getVersion();
+								if(tmpVersion >= version){
+									version = tmpVersion;
+									selectedServer = server;
+								}
+								s.close();
+								break;
+							}
+							if(errorcount > 4){
+								System.out.println("Failed at verifing message Integrity. Debug:VersionResponse");
+								s.close();
+								return new MessageResponse("Failed at verifying message Integrity. Debug:VersionResponse");
+							}
+							s.close();
+						}
 					} catch (ClassNotFoundException e) {
 						System.out.println("ClassNotFoundException, really?");
 						socket.close();
@@ -197,7 +222,9 @@ public class ProxyImpl implements IProxy, Runnable {
 				try {
 					Socket socket = new Socket(selectedServer.getAddress(),selectedServer.getPort());
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(new InfoRequest(request.getFilename()));
+					InfoRequest ir = new InfoRequest(request.getFilename());
+					ir.setHmac(proxyCli.getSecretKey());
+					output.writeObject(ir);
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 					try {
 						Object responseObj = input.readObject();
@@ -207,6 +234,27 @@ public class ProxyImpl implements IProxy, Runnable {
 						} else if(responseObj instanceof MessageResponse) {
 							MessageResponse response = (MessageResponse)responseObj;
 							System.out.println(response.toString());
+						}
+						int errorcount = 0;
+						while(responseObj instanceof HmacErrorResponse){
+							errorcount++;
+							Socket s = new Socket(selectedServer.getAddress(),selectedServer.getPort());
+							ObjectOutputStream o = new ObjectOutputStream(s.getOutputStream());
+							o.writeObject(ir);
+							ObjectInputStream i = new ObjectInputStream(s.getInputStream());
+							responseObj = i.readObject();
+							if(responseObj instanceof InfoResponse){
+								InfoResponse response = (InfoResponse)responseObj;
+								fileSize = response.getSize();
+								s.close();
+								break;
+							}
+							if(errorcount > 4){
+								System.out.println("Failed at verifing message Integrity. Debug:InfoResponse");
+								s.close();
+								return new MessageResponse("Failed at verifying message Integrity. Debug:InfoResponse");
+							}
+							s.close();
 						}
 					} catch (ClassNotFoundException e) {
 						System.out.println("ClassNotFoundException, really?");

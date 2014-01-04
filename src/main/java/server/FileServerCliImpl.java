@@ -230,10 +230,36 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 
 	@Override
 	public Response info(InfoRequest request) throws IOException {
-		byte[] data = FileUtils.readFile(dir,request.getFilename());
-		if(data == null) return new MessageResponse("File does not exist!");
-		else {
-			return new InfoResponse(request.getFilename(),data.length);
+		Mac hmac=null;
+		try {
+			hmac = Mac.getInstance("HmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		try {
+			hmac.init(secretKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//hmac.update(request.toString().getBytes());
+		hmac.update(request.toString().getBytes());
+		
+		byte[] computedHash = hmac.doFinal();
+		byte[] receivedHash = Base64.decode(request.getKey());
+		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		
+		if(validHash){
+			byte[] data = FileUtils.readFile(dir,request.getFilename());
+			if(data == null) return new MessageResponse("File does not exist!");
+			else {
+				return new InfoResponse(request.getFilename(),data.length);
+			}
+		} else {
+			shell.writeLine(request.toString());
+			return new HmacErrorResponse("Integrity check failed in info Request.");
 		}
 	}
 
