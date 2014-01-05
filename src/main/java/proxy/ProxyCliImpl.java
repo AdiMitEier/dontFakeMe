@@ -353,8 +353,8 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 					user.getClientObject().notifySubscription(fileName,downloadsToNotify);
 					user.getSubscriptions().remove(fileName);
 				} catch (RemoteException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Failed to notify client, clearing its subscriptions");
+					user.getSubscriptions().clear();
 				}
 			}
 		}
@@ -487,11 +487,15 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 
 	@Override
 	public MessageResponse subscribe(IClientRMI client, String userName, String fileName, int number) throws RemoteException {
-		if(!getCombinedFileList().contains(fileName)) return new MessageResponse("File does not exist");
-		UserModel user = getUser(userName);
-		user.setClientObject(client);
-		if(user.getSubscriptions().put(fileName,new Integer[]{number,getDownloads(fileName)}) != null) return new MessageResponse("Already subscribed");
-		else return new MessageResponse("Successfully subscribed for file: "+fileName);
+		for(FileModel file : getCombinedFileList()) {
+			if(file.getFilename().equals(fileName)) {
+				UserModel user = getUser(userName);
+				user.setClientObject(client);
+				if(user.getSubscriptions().put(fileName,new Integer[]{number,getDownloads(fileName)}) != null) return new MessageResponse("Already subscribed");
+				else return new MessageResponse("Successfully subscribed for file: "+fileName);
+			}
+		}
+		return new MessageResponse("File does not exist");
 	}
 	
 	private UserModel getUser(String userName) {
