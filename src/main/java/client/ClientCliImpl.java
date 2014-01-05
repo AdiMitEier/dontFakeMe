@@ -1,5 +1,8 @@
 package client;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -10,6 +13,10 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.security.PublicKey;
+
+import org.bouncycastle.openssl.PEMReader;
+import org.bouncycastle.openssl.PEMWriter;
 
 import proxy.IProxyRMI;
 import util.Config;
@@ -312,15 +319,58 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	}
 
 	@Override
-	public void notifySubscription(String file) throws RemoteException {
-		System.out.println("NOTIFIED " + file);
+	public void notifySubscription(String file, int number) throws RemoteException {
+		System.out.println("Notification: "+file+" got downloaded "+number+" times!.");
 	}
 
 	@Override
 	@Command
-	public MessageResponse subscribe(String fileName) throws IOException {
+	public MessageResponse subscribe(String fileName, int number) throws IOException {
 		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
-		if(initRMI()) return proxyRMI.subscribe(this,loggedInUserName,fileName);
+		if(number <= 0) return new MessageResponse("Number must be greater than 0");
+		if(initRMI()) return proxyRMI.subscribe(this,loggedInUserName,fileName,number);
+		else return new MessageResponse("Cannot connect to Proxy via RMI");
+	}
+
+	@Override
+	@Command
+	public Response topThreeDownloads() throws IOException {
+		if(initRMI()) return proxyRMI.topThreeDownloads();
+		else return new MessageResponse("Cannot connect to Proxy via RMI");
+	}
+
+	@Override
+	@Command
+	public MessageResponse getProxyPublicKey() throws IOException {
+		if(initRMI()) {
+			ProxyPublicKeyResponse response = proxyRMI.getProxyPublicKey();
+			if(!response.hasKey()) return new MessageResponse(response.toString());
+			else {
+				String pathToPublicKey = keysDir+"/proxy.pub.pem";
+				PEMWriter out = new PEMWriter(new FileWriter(pathToPublicKey)); 
+				out.writeObject(response.getKey());
+				out.close();
+				return new MessageResponse("Successfully received public key of Proxy.");
+			}
+		}
+		else return new MessageResponse("Cannot connect to Proxy via RMI");
+	}
+
+	@Override
+	@Command
+	public MessageResponse setUserPublicKey(String userName) throws IOException {
+		if(initRMI()) {
+			String pathToPublicKey = keysDir+"/"+userName+".pub.pem";
+			PEMReader in;
+			try {
+				in = new PEMReader(new FileReader(pathToPublicKey));
+				PublicKey publicKey = (PublicKey) in.readObject();
+				in.close();
+				return proxyRMI.setUserPublicKey(userName, publicKey);
+			} catch (FileNotFoundException e) {
+				return new MessageResponse("Key for user "+userName+" not found");
+			}
+		}
 		else return new MessageResponse("Cannot connect to Proxy via RMI");
 	}
 }

@@ -106,22 +106,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	@Override
 	public Response list() throws IOException {
 		if(currentUser != null) {
-			Set<FileModel> combinedFileList = new HashSet<FileModel>();
-			for(FileServerModel server : proxyCli.getFileServers()) {
-				if(server.isOnline()) {
-					for(FileModel file : server.getFileList()){
-						boolean alreadyInList = false;
-						for(FileModel fileCombinedList : combinedFileList){
-							if(file.getFilename().equals(fileCombinedList.getFilename()))
-								alreadyInList = true;
-						}
-						if(!alreadyInList){
-							combinedFileList.add(file);
-						}
-					}
-				}
-			}
-			return new ListResponse(combinedFileList);
+			return new ListResponse(proxyCli.getCombinedFileList());
 		}
 		return new MessageResponse("You have to login first to perform this action!");
 	}
@@ -219,6 +204,7 @@ public class ProxyImpl implements IProxy, Runnable {
 				}
 				proxyCli.increaseUsage(selectedServer, fileSize);
 				proxyCli.changeCredits(currentUser, -fileSize);
+				proxyCli.increaseDownloads(request.getFilename());
 				DownloadTicket ticket = new DownloadTicket(currentUser.getName(), request.getFilename(), ChecksumUtils.generateChecksum(currentUser.getName(), request.getFilename(), version, fileSize), selectedServer.getAddress(), selectedServer.getPort());
 				return new DownloadTicketResponse(ticket);
 			}
