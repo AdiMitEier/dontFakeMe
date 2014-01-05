@@ -3,6 +3,7 @@ package server;
 import message.Response;
 import message.request.DownloadFileRequest;
 import message.request.InfoRequest;
+import message.request.ListRequest;
 import message.request.UploadRequest;
 import message.request.VersionRequest;
 import message.response.*;
@@ -27,7 +28,7 @@ public interface IFileServer {
 	 * a {@link MessageResponse} if an error occurred
 	 * @throws IOException if an I/O error occurs
 	 */
-	Response list() throws IOException;
+	Response list(ListRequest request) throws IOException;
 
 	/**
 	 * Downloads the file with the given name (if possible).

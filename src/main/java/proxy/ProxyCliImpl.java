@@ -220,7 +220,9 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 			server.getFileList().clear();
 			Socket socket = new Socket(address,port);
 			ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-			output.writeObject(new ListRequest());
+			ListRequest lr = new ListRequest();
+			lr.setHmac(secretKey);
+			output.writeObject(lr);
 			ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 			try {
 				Object responseObj = input.readObject();
@@ -229,6 +231,29 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 					for(FileModel file : response.getFileNames()) {
 						addToFileList(server,file);
 					}
+				}
+				int errorcount = 0;
+				while(responseObj instanceof HmacErrorResponse){
+					errorcount++;
+					Socket s = new Socket(server.getAddress(),server.getPort());
+					ObjectOutputStream o = new ObjectOutputStream(s.getOutputStream());
+					o.writeObject(lr);
+					ObjectInputStream i = new ObjectInputStream(s.getInputStream());
+					responseObj = i.readObject();
+					if(responseObj instanceof ListResponse){
+						ListResponse response = (ListResponse)responseObj;
+						for(FileModel file : response.getFileNames()) {
+							addToFileList(server,file);
+						}
+						s.close();
+						break;
+					}
+					if(errorcount > 4){
+						System.out.println("Failed at verifing message Integrity. Debug:ListResponse");
+						s.close();
+						break;
+					}
+					s.close();
 				}
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
