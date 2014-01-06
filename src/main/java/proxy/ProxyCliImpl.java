@@ -175,7 +175,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 				while(true) {
 						Socket socket = serverSocket.accept();
 						clientSockets.add(socket);
-						System.out.println("Proxy: New client accepted");
+						//System.out.println("Proxy: New client accepted");
 						worker.execute(new ProxyImpl(socket, proxyCli));
 				}
 			} catch (IOException e) {
@@ -204,7 +204,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 							refreshFileListOfServer(server.getAddress(),server.getPort());
 						}
 					} else {
-						System.out.println("Proxy: New fileserver on port " + receivedPort);
+						//System.out.println("Proxy: New fileserver on port " + receivedPort);
 						fileServers.add(new FileServerModel(receivePacket.getAddress(),receivedPort,0,new Date(),true,new HashSet<FileModel>()));
 						refreshFileListOfServer(receivePacket.getAddress(),receivedPort);
 					}
@@ -322,12 +322,12 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	
 	public synchronized void changeCredits(UserModel user, long credits) {
 		user.setCredits(user.getCredits() + credits);
-		System.out.println("Proxy: Credits of " + user.getName() + " is now: " + user.getCredits());
+		//System.out.println("Proxy: Credits of " + user.getName() + " is now: " + user.getCredits());
 	}
 	
 	public synchronized void increaseUsage(FileServerModel server, long usage) {
 		server.setUsage(server.getUsage() + usage);
-		System.out.println("Proxy: Usage of fileserver on port " + server.getPort() + " is now: " + server.getUsage());
+		//System.out.println("Proxy: Usage of fileserver on port " + server.getPort() + " is now: " + server.getUsage());
 	}
 	
 	public synchronized void addToFileList(FileServerModel server, FileModel file) {
@@ -418,7 +418,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	@Override
 	@Command
 	public MessageResponse exit() throws IOException {
-		System.out.println("Shutting down proxy now");
+		//System.out.println("Shutting down proxy now");
 		timer.cancel();
 		datagramSocket.close();
 		serverSocket.close();
@@ -490,20 +490,21 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		for(FileModel file : getCombinedFileList()) {
 			if(file.getFilename().equals(fileName)) {
 				UserModel user = getUser(userName);
-				user.setClientObject(client);
+				if(user == null) return new MessageResponse("User "+userName+" does not exist");
 				if(user.getSubscriptions().put(fileName,new Integer[]{number,getDownloads(fileName)}) != null) return new MessageResponse("Already subscribed");
-				else return new MessageResponse("Successfully subscribed for file: "+fileName);
+				else {
+					user.setClientObject(client);
+					return new MessageResponse("Successfully subscribed for file: "+fileName);
+				}
 			}
 		}
 		return new MessageResponse("File does not exist");
 	}
 	
 	private UserModel getUser(String userName) {
-		System.out.println("searching for " + userName);
 		for(UserModel user : users) {
 			if(user.getName().equals(userName)) return user;
 		}
-		System.out.println(userName + " not found");
 		return null;
 	}
 	

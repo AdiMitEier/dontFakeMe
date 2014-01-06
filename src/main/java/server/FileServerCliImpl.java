@@ -60,9 +60,9 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	private Timer timer;
 	
 	public static void main(String[] args) {
-		if(args.length > 0) {
+		/*if(args.length > 0) {
 			System.out.println(args[0]);	
-		}
+		}*/
 		new FileServerCliImpl(new Config(args[0]), new Shell(args[0], System.out, System.in));
 	}
 	
@@ -172,7 +172,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	@Override
 	@Command
 	public MessageResponse exit() throws IOException {
-		System.out.println("Shutting down fileserver now");
+		//System.out.println("Shutting down fileserver now");
 		datagramSocket.close();
 		timer.cancel();
 		serverSocket.close();
@@ -190,22 +190,24 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("NoSuchAlgorithmException (HmacSHA256 not valid): " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		} 
 		try {
 			hmac.init(secretKey);
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("InvalidKeyException: " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		}
-		
-		//hmac.update(request.toString().getBytes());
+
 		hmac.update(request.toString().getBytes());
 		
 		byte[] computedHash = hmac.doFinal();
-		byte[] receivedHash = Base64.decode(request.getKey());
-		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		boolean validHash = false;
+		if(request.getKey()!=null){
+			byte[] receivedHash = Base64.decode(request.getKey());
+			validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		}
 		//STAGE 1
 		if(validHash){
 			return new ListResponse(this.fileList);
@@ -234,23 +236,24 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("NoSuchAlgorithmException (HmacSHA256 not valid): " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		} 
 		try {
 			hmac.init(secretKey);
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("InvalidKeyException: " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		}
-		
-		//hmac.update(request.toString().getBytes());
+	
 		hmac.update(request.toString().getBytes());
 		
 		byte[] computedHash = hmac.doFinal();
-		byte[] receivedHash = Base64.decode(request.getKey());
-		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
-		
+		boolean validHash = false;
+		if(request.getKey()!=null){
+			byte[] receivedHash = Base64.decode(request.getKey());
+			validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		}
 		if(validHash){
 			byte[] data = FileUtils.readFile(dir,request.getFilename());
 			if(data == null) return new MessageResponse("File does not exist!");
@@ -269,22 +272,24 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("NoSuchAlgorithmException (HmacSHA256 not valid): " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		} 
 		try {
 			hmac.init(secretKey);
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("InvalidKeyException: " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		}
 		//hmac.update(request.toString().getBytes());
 		hmac.update(request.toString().getBytes());
 		
 		byte[] computedHash = hmac.doFinal();
-		byte[] receivedHash = Base64.decode(request.getKey());
-		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
-		
+		boolean validHash = false;
+		if(request.getKey()!=null){
+			byte[] receivedHash = Base64.decode(request.getKey());
+			validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		}
 		//STAGE 1
 		if(validHash){
 			for(FileModel file : fileList){
@@ -304,20 +309,23 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("NoSuchAlgorithmException (HmacSHA256 not valid): " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		} 
 		try {
 			hmac.init(secretKey);
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("InvalidKeyException: " + e.getMessage());
+			return new HmacErrorResponse("Integrity check failed.");
 		}
 		hmac.update(request.toString().getBytes());
 		
 		byte[] computedHash = hmac.doFinal();
-		byte[] receivedHash = Base64.decode(request.getKey());
-		boolean validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		boolean validHash = false;
+		if(request.getKey()!=null){
+			byte[] receivedHash = Base64.decode(request.getKey());
+			validHash = MessageDigest.isEqual(computedHash,receivedHash);
+		}
 		
 		if(validHash){
 			if(!FileUtils.writeFile(dir,request.getFilename(),request.getContent())) {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="Lab1" default="compile" basedir=".">
+<project name="Lab2" default="compile" basedir=".">
 
 	<property name="src.dir" value="src/main/java" />
 	<property name="src.resources.dir" value="src/main/resources" />
@@ -24,6 +24,7 @@
 			</fileset>
 			<fileset dir="${test.resources.dir}">
 				<include name="*.txt" />
+				<include name="*.properties" />
 			</fileset>
 		</copy>
 	</target>
@@ -39,6 +40,23 @@
 				</fileset>
 			</batchtest>
 		</junit>
+	</target>
+	
+	<!--<target name="testFramework" description="Testing Framework" depends="compile">
+		<mkdir dir="${reports.dir}" />
+		<junit includeantruntime="true" logfailedtests="true" showoutput="true" printsummary="true">
+			<classpath refid="project.classpath" />
+			<formatter type="plain" />
+			<batchtest fork="false" todir="${reports.dir}">
+				<fileset dir="${test.src.dir}">
+					<include name="**/TestingFramework.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>-->
+	
+	<target name="testFramework" depends="compile" description="Testing Framework">
+		<java classname="test.TestingFramework" fork="true" classpathref="project.classpath" />
 	</target>
 
 	<target name="run-proxy" depends="compile" description="Run proxy.">

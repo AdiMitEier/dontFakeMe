@@ -40,19 +40,19 @@ public class VersionRequest implements Request {
 		try {
 			hmac = Mac.getInstance("HmacSHA256");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO vernuenftiges handling
-			e.printStackTrace();
+			System.err.println("NoSuchAlgorithmException (HmacSHA256 not valid): " + e.getMessage());
 		}
 		try {
 			hmac.init(key);
 		} catch (InvalidKeyException e) {
-			// TODO vernuenftiges handling
-			e.printStackTrace();
+			System.err.println("InvalidKeyException: " + e.getMessage());
 		}
 		byte[] message = this.toString().getBytes();
-		hmac.update(message);
-		byte[] hash = hmac.doFinal();
-		base64hash = Base64.encode(hash);
+		if(hmac!=null){
+			hmac.update(message);
+			byte[] hash = hmac.doFinal();
+			base64hash = Base64.encode(hash);
+		}
 	}
 	
 	//STAGE3
