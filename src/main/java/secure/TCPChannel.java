@@ -21,14 +21,15 @@ public class TCPChannel implements IChannel {
 		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
 		this.input =  new ObjectInputStream(tcpchannelsocket.getInputStream());
 	}
+	//CLIENT
 	@Override
-	public void sendMessage(Request message) throws Exception {
+	public void sendMessageRequest(Request message) throws Exception {
 		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
 		this.output.writeObject(message);
 	}
 
 	@Override
-	public Response receiveMessage() throws Exception {
+	public Response receiveMessageResponse() throws Exception {
 		this.input = new ObjectInputStream(tcpchannelsocket.getInputStream());
 		return (Response)input.readObject();
 	}
@@ -39,5 +40,16 @@ public class TCPChannel implements IChannel {
 		this.output.close();
 		if(tcpchannelsocket != null) tcpchannelsocket.close();
 		
+	}
+	//PROXY
+	@Override
+	public void sendMessageResponse(Request message) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public Request receiveMessageRequest() throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
