@@ -490,9 +490,12 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		for(FileModel file : getCombinedFileList()) {
 			if(file.getFilename().equals(fileName)) {
 				UserModel user = getUser(userName);
-				user.setClientObject(client);
+				if(user == null) return new MessageResponse("User "+userName+" does not exist");
 				if(user.getSubscriptions().put(fileName,new Integer[]{number,getDownloads(fileName)}) != null) return new MessageResponse("Already subscribed");
-				else return new MessageResponse("Successfully subscribed for file: "+fileName);
+				else {
+					user.setClientObject(client);
+					return new MessageResponse("Successfully subscribed for file: "+fileName);
+				}
 			}
 		}
 		return new MessageResponse("File does not exist");
