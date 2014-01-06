@@ -25,7 +25,7 @@ public abstract class Base64Channel implements IChannel {
 	public Base64Channel(Socket s) throws IOException{
 		this.tcpchannelsocket = s;
 		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
-		this.input =  new ObjectInputStream(tcpchannelsocket.getInputStream());
+		//this.input =  new ObjectInputStream(tcpchannelsocket.getInputStream());
 	}
 	//CLIENT
 	@Override

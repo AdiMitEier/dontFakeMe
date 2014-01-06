@@ -19,6 +19,7 @@ public class LoginRequest implements Request {
 
 	private final String username;
 	private final String password;
+	private byte[] challenge;
 
 	public LoginRequest(String username, String password) {
 		this.username = username;
@@ -32,9 +33,19 @@ public class LoginRequest implements Request {
 	public String getPassword() {
 		return password;
 	}
+	
+	public byte[] getChallenge() {
+		return challenge;
+	}
+
+	public void setChallenge(byte[] challenge) {
+		this.challenge = challenge;
+	}
 
 	@Override
 	public String toString() {
 		return String.format("!login %s %s", getUsername(), getPassword());
 	}
+
+
 }

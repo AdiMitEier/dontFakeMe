@@ -37,17 +37,19 @@ public class RSAChannel extends Base64Channel{
 		//CHALLENGE for login
 		byte[] encode = this.encodeBase64(this.generateSecureChallenge());
 		if(message instanceof LoginRequest){
-			message = new LoginRequest(((LoginRequest) message).getUsername(),((LoginRequest) message).getPassword(),encode);
+			((LoginRequest) message).setChallenge(encode);
 		}
 		
-		//RSA MESSAGE
+		//RSA MESSAGE(
 		initencryptChipher();
-		byte[]rsa = encrypt.doFinal(this.toByteArray(message));
+		byte[]rsa = encrypt.doFinal(this.toByteArray(message));		
 	
 		//ENCODE BASE64
 		byte[] messagearray = this.encodeBase64(rsa);
 		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
 		this.output.writeObject(messagearray);
+		this.output.flush();
+		this.output.close();
 	}
 	@Override
 	public Response receiveMessageResponse() throws Exception {
