@@ -499,11 +499,9 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	}
 	
 	private UserModel getUser(String userName) {
-		System.out.println("searching for " + userName);
 		for(UserModel user : users) {
 			if(user.getName().equals(userName)) return user;
 		}
-		System.out.println(userName + " not found");
 		return null;
 	}
 	
