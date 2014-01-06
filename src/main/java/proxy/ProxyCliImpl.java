@@ -1,5 +1,8 @@
 package proxy;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -15,17 +18,26 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.security.Key;
+import java.security.PublicKey;
 
 import javax.crypto.Mac;
+
+import org.bouncycastle.openssl.PEMReader;
+import org.bouncycastle.openssl.PEMWriter;
 
 import cli.Command;
 import cli.Shell;
@@ -41,7 +53,6 @@ import model.UserInfo;
 import model.UserModel;
 
 public class ProxyCliImpl implements IProxyCli, IProxyRMI {
-	//TODO: download funkt erst ab 2 fileservern
 	//TODO: version und upload sind schon mit hmac
 	private Config proxyConfig;
 	private Config userConfig;
@@ -54,6 +65,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	private List<String> userNames;
 	private List<UserModel> users;
 	private List<FileServerModel> fileServers;
+	private Map<String,Integer> downloads;
 	private int readQuorum = -1;
 	private int writeQuorum = -1;
 	private Config mcConfig;
@@ -85,6 +97,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		fileServers = new ArrayList<FileServerModel>();
 		users = new ArrayList<UserModel>();
 		clientSockets = new ArrayList<Socket>();
+		downloads = new ConcurrentHashMap<String,Integer>();
 		readProxyConfig();
 		readMCConfig();
 		readUserConfig();
@@ -320,6 +333,32 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	public synchronized void addToFileList(FileServerModel server, FileModel file) {
 		server.getFileList().add(file);
 	}
+	
+	public synchronized void increaseDownloads(String fileName) {
+		if(!downloads.containsKey(fileName)) {
+			downloads.put(fileName, 1);
+		} else {
+			downloads.put(fileName, downloads.get(fileName)+1);
+		}
+		notifySubscriptions(fileName);
+	}
+	
+	public synchronized void notifySubscriptions(String fileName) {
+		for(UserModel user : users) {
+			if(user.getSubscriptions().containsKey(fileName)) {
+				int downloadsSinceSubscription = getDownloads(fileName) - user.getSubscriptions().get(fileName)[1];
+				int downloadsToNotify = user.getSubscriptions().get(fileName)[0];
+				if(downloadsSinceSubscription < downloadsToNotify) continue;
+				try {
+					user.getClientObject().notifySubscription(fileName,downloadsToNotify);
+					user.getSubscriptions().remove(fileName);
+				} catch (RemoteException e) {
+					System.out.println("Failed to notify client, clearing its subscriptions");
+					user.getSubscriptions().clear();
+				}
+			}
+		}
+	}
 
 	public List<FileServerModel> getFileServersWithLowestUsage(int amount) {
 		List<FileServerModel> lowestUsage = new ArrayList<FileServerModel>(fileServers);
@@ -333,6 +372,25 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
             lowestUsage.set(j,tmp);
         }
 		return lowestUsage.subList(0,amount);
+	}
+	
+	public synchronized Set<FileModel> getCombinedFileList() {
+		Set<FileModel> combinedFileList = new HashSet<FileModel>();
+		for(FileServerModel server : getFileServers()) {
+			if(server.isOnline()) {
+				for(FileModel file : server.getFileList()){
+					boolean alreadyInList = false;
+					for(FileModel fileCombinedList : combinedFileList){
+						if(file.getFilename().equals(fileCombinedList.getFilename()))
+							alreadyInList = true;
+					}
+					if(!alreadyInList){
+						combinedFileList.add(file);
+					}
+				}
+			}
+		}
+		return combinedFileList;
 	}
 	
 	@Override
@@ -383,16 +441,6 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 
 	@Override
 	public MessageResponse readQuorum() {
-		/*for(UserModel user : users) {
-			for(String file : user.getSubscriptions()) {
-				try {
-					user.getClientObject().notifySubscription(file);
-				} catch (RemoteException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}*/
 		return new MessageResponse("Read-Quorum is set to "+String.valueOf(readQuorum)+".");
 	}
 
@@ -403,36 +451,92 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 
 	@Override
 	public TopThreeDownloadsResponse topThreeDownloads() throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		ValueComparator vc =  new ValueComparator(downloads);
+        TreeMap<String,Integer> sortedMap = new TreeMap<String,Integer>(vc);
+        sortedMap.putAll(downloads);
+        TopThreeDownloadsResponse response = new TopThreeDownloadsResponse();
+        if(sortedMap.keySet().size()>0) {
+	        response.setFile1((String)sortedMap.keySet().toArray()[0]);
+	        response.setDownloads1((Integer)sortedMap.values().toArray()[0]);
+        }
+        if(sortedMap.keySet().size()>1) {
+	        response.setFile2((String)sortedMap.keySet().toArray()[1]);
+	        response.setDownloads2((Integer)sortedMap.values().toArray()[1]);
+        }
+        if(sortedMap.keySet().size()>2) {
+	        response.setFile3((String)sortedMap.keySet().toArray()[2]);
+	        response.setDownloads3((Integer)sortedMap.values().toArray()[2]);
+        }
+		return response;
+	}
+	
+	class ValueComparator implements Comparator<String> {
+	    Map<String, Integer> base;
+	    public ValueComparator(Map<String, Integer> base) {
+	        this.base = base;
+	    }
+    
+	    public int compare(String a, String b) {
+	        if (base.get(a) >= base.get(b)) {
+	            return -1;
+	        } else {
+	            return 1;
+	        }
+	    }
 	}
 
 	@Override
-	public MessageResponse subscribe(IClientRMI client, String userName, String file) throws RemoteException {
-		UserModel user = getUser(userName);
-		user.setClientObject(client);
-		if(!user.getSubscriptions().add(file)) return new MessageResponse("Already subscribed");
-		else return new MessageResponse("Successfully subscribed");
+	public MessageResponse subscribe(IClientRMI client, String userName, String fileName, int number) throws RemoteException {
+		for(FileModel file : getCombinedFileList()) {
+			if(file.getFilename().equals(fileName)) {
+				UserModel user = getUser(userName);
+				user.setClientObject(client);
+				if(user.getSubscriptions().put(fileName,new Integer[]{number,getDownloads(fileName)}) != null) return new MessageResponse("Already subscribed");
+				else return new MessageResponse("Successfully subscribed for file: "+fileName);
+			}
+		}
+		return new MessageResponse("File does not exist");
 	}
 	
 	private UserModel getUser(String userName) {
-		System.out.println("searching for " + userName);
 		for(UserModel user : users) {
 			if(user.getName().equals(userName)) return user;
 		}
-		System.out.println(userName + " not found");
 		return null;
+	}
+	
+	private int getDownloads(String fileName) {
+		if(!downloads.containsKey(fileName)) return 0;
+		else return downloads.get(fileName);
 	}
 
 	@Override
-	public MessageResponse getProxyPublicKey() throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+	public ProxyPublicKeyResponse getProxyPublicKey() throws RemoteException {
+		String pathToPublicKey = keysDir+"/proxy.pub.pem";
+		PEMReader in;
+		try {
+			in = new PEMReader(new FileReader(pathToPublicKey));
+			PublicKey publicKey = (PublicKey) in.readObject();
+			in.close();
+			return new ProxyPublicKeyResponse(publicKey);
+		} catch (FileNotFoundException e) {
+			return new ProxyPublicKeyResponse("Key not found");
+		} catch (IOException e) {
+			return new ProxyPublicKeyResponse("Could not read public key");
+		} 
 	}
 
 	@Override
-	public MessageResponse setUserPublicKey() throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+	public MessageResponse setUserPublicKey(String userName, PublicKey key) throws RemoteException {
+		String pathToPublicKey = keysDir+"/"+userName+".pub.pem";
+		PEMWriter out;
+		try {
+			out = new PEMWriter(new FileWriter(pathToPublicKey));
+			out.writeObject(key);
+			out.close();
+			return new MessageResponse("Successfully transmitted public key of user: "+userName+".");
+		} catch (IOException e) {
+			return new MessageResponse("Could not write public key");
+		} 
 	}
 }

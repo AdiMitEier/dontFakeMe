@@ -1,9 +1,7 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import client.IClientRMI;
 
@@ -14,14 +12,15 @@ public class UserModel {
 	private boolean online;
 	private long credits;
 	private IClientRMI clientObject;
-	private Set<String> subscriptions;
+	// a subscription is saved in the format FILENAME,{#downloads till notification, #downloads before subscription}
+	private Map<String,Integer[]> subscriptions;
 	
 	public UserModel(String name, String password, boolean online, long credits) {
 		this.setName(name);
 		this.setPassword(password);
 		this.setOnline(online);
 		this.setCredits(credits);
-		subscriptions = new HashSet<String>();
+		subscriptions = new HashMap<String,Integer[]>();
 	}
 
 	public String getName() {
@@ -64,11 +63,11 @@ public class UserModel {
 		this.clientObject = clientObject;
 	}
 
-	public Set<String> getSubscriptions() {
+	public Map<String,Integer[]> getSubscriptions() {
 		return subscriptions;
 	}
 
-	public void setSubscriptions(Set<String> subscriptions) {
+	public void setSubscriptions(Map<String,Integer[]> subscriptions) {
 		this.subscriptions = subscriptions;
 	}
 }

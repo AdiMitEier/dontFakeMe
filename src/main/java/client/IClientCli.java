@@ -146,5 +146,11 @@ public interface IClientCli {
 	
 	MessageResponse writeQuorum() throws IOException;
 	
-	MessageResponse subscribe(String fileName) throws IOException;
+	MessageResponse subscribe(String fileName, int number) throws IOException;
+	
+	Response topThreeDownloads() throws IOException;
+	
+	MessageResponse getProxyPublicKey() throws IOException;
+	
+	MessageResponse setUserPublicKey(String userName) throws IOException;
 }
