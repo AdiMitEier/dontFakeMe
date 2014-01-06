@@ -60,9 +60,9 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	private Timer timer;
 	
 	public static void main(String[] args) {
-		if(args.length > 0) {
+		/*if(args.length > 0) {
 			System.out.println(args[0]);	
-		}
+		}*/
 		new FileServerCliImpl(new Config(args[0]), new Shell(args[0], System.out, System.in));
 	}
 	
@@ -172,7 +172,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	@Override
 	@Command
 	public MessageResponse exit() throws IOException {
-		System.out.println("Shutting down fileserver now");
+		//System.out.println("Shutting down fileserver now");
 		datagramSocket.close();
 		timer.cancel();
 		serverSocket.close();

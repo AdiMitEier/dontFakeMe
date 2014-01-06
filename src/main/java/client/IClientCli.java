@@ -153,4 +153,6 @@ public interface IClientCli {
 	MessageResponse getProxyPublicKey() throws IOException;
 	
 	MessageResponse setUserPublicKey(String userName) throws IOException;
+	
+	String getLoggedInUserName();
 }

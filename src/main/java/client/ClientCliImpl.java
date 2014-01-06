@@ -71,6 +71,10 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		}
 	}
 	
+	public String getLoggedInUserName() {
+		return loggedInUserName;
+	}
+
 	private void readConfig() {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
@@ -293,7 +297,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	@Override
 	@Command
 	public MessageResponse exit() throws IOException {
-		System.out.println("Shutting down client now");
+		//System.out.println("Shutting down client now");
 		logout();
 		loggedInUserName = null;
 		if(clientSocket != null) clientSocket.close();

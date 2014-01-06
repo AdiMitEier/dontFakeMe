@@ -79,7 +79,7 @@ public class ProxyImpl implements IProxy, Runnable {
 
 	@Override
 	public LoginResponse login(LoginRequest request) throws IOException {
-		System.out.println(proxyCli.getReadQuorum() + " "+ proxyCli.getWriteQuorum());
+		//System.out.println(proxyCli.getReadQuorum() + " "+ proxyCli.getWriteQuorum());
 		for(UserModel user : proxyCli.getUsers()) {
 			if(user.getName().compareTo(request.getUsername()) == 0 && user.getPassword().compareTo(request.getPassword()) == 0) {
 				user.setOnline(true);
@@ -136,7 +136,7 @@ public class ProxyImpl implements IProxy, Runnable {
 						if(hasFile) {
 							if(selectedServer == null || selectedServer.getUsage()>server.getUsage()) {
 								selectedServer = server;
-								System.out.println("Proxy: selected server on port "+selectedServer.getPort()+" Usage: "+selectedServer.getUsage());
+								//System.out.println("Proxy: selected server on port "+selectedServer.getPort()+" Usage: "+selectedServer.getUsage());
 							}
 						}
 					}
@@ -163,7 +163,7 @@ public class ProxyImpl implements IProxy, Runnable {
 							}
 						} else if(responseObj instanceof MessageResponse) {
 							MessageResponse response = (MessageResponse)responseObj;
-							System.out.println(response.toString());
+							//System.out.println(response.toString());
 						}
 						int errorcount = 0;
 						while(responseObj instanceof HmacErrorResponse){
@@ -218,7 +218,7 @@ public class ProxyImpl implements IProxy, Runnable {
 							fileSize = response.getSize();
 						} else if(responseObj instanceof MessageResponse) {
 							MessageResponse response = (MessageResponse)responseObj;
-							System.out.println(response.toString());
+							//System.out.println(response.toString());
 						}
 						int errorcount = 0;
 						while(responseObj instanceof HmacErrorResponse){
@@ -268,7 +268,7 @@ public class ProxyImpl implements IProxy, Runnable {
 	//STAGE1
 	public MessageResponse upload(UploadRequest request) throws IOException {
 		
-		System.out.println(request.toString());
+		//System.out.println(request.toString());
 		if(currentUser != null) {
 			int mostRecentVersionNumber = 0;
 			
@@ -344,7 +344,7 @@ public class ProxyImpl implements IProxy, Runnable {
 							MessageResponse response = (MessageResponse)responseObj;
 							proxyCli.increaseUsage(server,request.getContent().length);
 							proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
-							System.out.println("Proxy: "+response.toString());
+							//System.out.println("Proxy: "+response.toString());
 						}
 						int errorcount = 0;
 						while(responseObj instanceof HmacErrorResponse){
@@ -358,7 +358,7 @@ public class ProxyImpl implements IProxy, Runnable {
 								MessageResponse response = (MessageResponse)responseObj;
 								proxyCli.increaseUsage(server,request.getContent().length);
 								proxyCli.addToFileList(server, new FileModel(request.getFilename(),mostRecentVersionNumber+1));
-								System.out.println("Proxy: "+response.toString());
+								//System.out.println("Proxy: "+response.toString());
 								s.close();
 								break;
 							}
