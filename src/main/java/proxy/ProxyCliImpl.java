@@ -154,6 +154,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 			e.printStackTrace();
 		} 
 		privateKey = keyPair.getPrivate();
+		//System.out.println(privateKey.toString());
 }
 	
 	private void readProxyConfig() {

@@ -49,7 +49,7 @@ public class ProxyImpl implements IProxy, Runnable {
 		this.socket = socket;
 		this.proxyCli = proxyCli;
 
-		privateKey = null;
+		privateKey = proxyCli.getPrivateKey();
 	}
 	
 	@Override
@@ -62,9 +62,9 @@ public class ProxyImpl implements IProxy, Runnable {
 		}
 		RSAChannel channel = new RSAChannel(tcpchannel,privateKey);
 		while(true) {
-			try {
-				ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-				Object requestObj = input.readObject();
+			//try {
+				//ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
+				//Object requestObj = input.readObject();
 				/*if(requestObj instanceof LoginRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(login((LoginRequest)requestObj));
@@ -75,8 +75,8 @@ public class ProxyImpl implements IProxy, Runnable {
 				}catch(Exception e){
 					e.printStackTrace();
 				}
-				
-				/*else*/ if(requestObj instanceof LogoutRequest) {
+				/*
+				else if(requestObj instanceof LogoutRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(logout());
 				}
@@ -99,14 +99,14 @@ public class ProxyImpl implements IProxy, Runnable {
 				else if(requestObj instanceof DownloadTicketRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(download((DownloadTicketRequest)requestObj));
-				}
-			} catch (ClassNotFoundException e) {
+				}*/
+			/*} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 			} catch (IOException e) {
 				if(currentUser != null) currentUser.setOnline(false);
 				System.out.println("Shut down client proxy instance");
 				return;
-			}
+			}*/
 		}
 	}
 

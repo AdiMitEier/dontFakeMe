@@ -114,7 +114,8 @@ public class RSAChannel extends Base64Channel{
 		// MODE is the encryption/decryption mode 
 		// KEY is either a private, public or secret key 
 		// IV is an init vector, needed for AES 
-		encrypt.init(Cipher.DECRYPT_MODE,this.publickey);
+		//System.out.println(publickey);
+		decrypt.init(Cipher.DECRYPT_MODE,this.publickey);
 	}
 	//TODO receive Message
 	
