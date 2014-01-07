@@ -115,27 +115,30 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
 		try {
-			/*
-			PEMReader in = new PEMReader(new FileReader(keysDir)); 
+			
+			/*PEMReader in = new PEMReader(new FileReader(keysDir)); 
 			PublicKey publicKey = (PublicKey) in.readObject();
 			in.close();
 			
-			Socket socket = new Socket(host,tcpPort);
-			channel = new RSAChannel(socket, publicKey);
+			clientSocket = new Socket(host,tcpPort);
+			//Socket socket = new Socket(host,tcpPort);
+			channel = new RSAChannel(clientSocket, publicKey);
 			
 			
 			try {
 				channel.sendMessageRequest(new LoginRequest(username, password));
 			} catch (Exception e1) {
 				e1.printStackTrace();
-			}
-			*/
+			}*/
 			
-			clientSocket = new Socket(host,tcpPort);
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new LoginRequest(username, password));
+			
+			//clientSocket = new Socket(host,tcpPort);
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(new LoginRequest(username, password));
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			try {
+				//Response res = channel.receiveMessageResponse();
+				//LoginResponse response = (LoginResponse)res;
 				LoginResponse response = (LoginResponse)input.readObject();
 				if(response.getType() == Type.WRONG_CREDENTIALS) {
 					clientSocket.close();
@@ -145,7 +148,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new LoginResponse(Type.WRONG_CREDENTIALS);
-			}
+			} 
 		} catch(IOException e) {
 			System.out.println("Connection error");
 			e.printStackTrace();

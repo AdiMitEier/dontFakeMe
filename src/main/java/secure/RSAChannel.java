@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import message.Request;
@@ -12,6 +15,7 @@ import message.Response;
 import message.Request.*;
 import message.Response.*;
 import message.request.LoginRequest;
+import message.response.LoginResponse;
 
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -24,17 +28,15 @@ public class RSAChannel extends Base64Channel{
 	private Cipher decrypt;
 	private Key publickey;
 	
-	public RSAChannel(IChannel base64Channel) {
+	public RSAChannel(IChannel base64Channel,Key publickey) {
 		super(base64Channel);
+		this.publickey=publickey;
 	}
-	public RSAChannel(Socket s,Key publickey) throws IOException {
-		super(s);
-		this.publickey = publickey;
-	}
+	
 	//CLIENT
-	@Override
-	public void sendMessageRequest(Request message) throws Exception {
-		//CHALLENGE for login
+	
+	public void sendMessageRequest(Request message) throws IllegalBlockSizeException, BadPaddingException, Exception{
+		//CHALLENGE for login & BASE64
 		byte[] encode = this.encodeBase64(this.generateSecureChallenge());
 		if(message instanceof LoginRequest){
 			((LoginRequest) message).setChallenge(encode);
@@ -45,27 +47,53 @@ public class RSAChannel extends Base64Channel{
 		byte[]rsa = encrypt.doFinal(this.toByteArray(message));		
 	
 		//ENCODE BASE64
-		byte[] messagearray = this.encodeBase64(rsa);
-		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
-		this.output.writeObject(messagearray);
-		this.output.flush();
-		this.output.close();
+		this.sendByteArray(rsa);
 	}
-	@Override
+	
 	public Response receiveMessageResponse() throws Exception {
-		return null;
+		/*//DECODE BASE64
+		this.input = new ObjectInputStream(tcpchannelsocket.getInputStream());
+		byte[] messagearray = (byte[]) input.readObject();
+		messagearray = this.decodeBase64(messagearray);
 		
+		//DECODE RSA
+		initdecryptChipher();
+		byte[]rsa = decrypt.doFinal(messagearray);
+		
+		//DECODE BASE64 CHALLENGE LOGIN
+		Response res = (Response)this.byteArraytoObject(rsa);
+		
+		if(res instanceof LoginResponse){
+			LoginResponse response = (LoginResponse)res;
+			//byte[] challenge = res.
+			//TODO 
+		}*/
+		//return (Response)res;
+		return null;
 	}
+	
 	//PROXY
-	@Override
-	public void sendMessageResponse(Request message) throws Exception {
+	
+	public void sendMessageResponse(Response message) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
-	@Override
+	
 	public Request receiveMessageRequest() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		//BASE 64 
+		byte[] rec = this.receiveByteArray();
+		// RSA DECODEN
+		this.initdecryptChipher();
+		byte[]rsa = this.decrypt.doFinal(rec);
+		// TO OBJECT
+		Request reg = (Request)this.byteArraytoObject(rsa);
+		if(reg instanceof LoginRequest){
+			reg=(LoginRequest)reg;
+			byte[]challenge= ((LoginRequest) reg).getChallenge();
+			((LoginRequest) reg).setChallenge(this.decodeBase64(challenge));
+		}
+		
+		return reg;
 	}
 	public byte[] generateSecureChallenge(){
 		// generates a 32 byte secure random number 
@@ -74,14 +102,14 @@ public class RSAChannel extends Base64Channel{
 		secureRandom.nextBytes(number);
 		return number;
 	}
-	public void initencryptChipher() throws Exception{
+	public void initencryptChipher() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException{
 		this.encrypt = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding"); 
 		// MODE is the encryption/decryption mode 
 		// KEY is either a private, public or secret key 
 		// IV is an init vector, needed for AES 
 		encrypt.init(Cipher.ENCRYPT_MODE,this.publickey);
 	}
-	public void initdecryptChipher() throws Exception{
+	public void initdecryptChipher() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
 		this.decrypt = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding"); 
 		// MODE is the encryption/decryption mode 
 		// KEY is either a private, public or secret key 
