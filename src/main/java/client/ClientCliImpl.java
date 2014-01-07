@@ -132,9 +132,9 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			}*/
 			
 			
-			//clientSocket = new Socket(host,tcpPort);
-			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			//output.writeObject(new LoginRequest(username, password));
+			clientSocket = new Socket(host,tcpPort);
+			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			output.writeObject(new LoginRequest(username, password));
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			try {
 				//Response res = channel.receiveMessageResponse();
