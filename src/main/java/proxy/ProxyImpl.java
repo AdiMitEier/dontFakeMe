@@ -8,11 +8,16 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.openssl.PEMReader;
@@ -71,10 +76,68 @@ public class ProxyImpl implements IProxy, Runnable {
 				}*/
 				try{
 					Request request = channel.receiveMessageRequest();
-					System.out.println(((LoginRequest)request).toString());
-				}catch(Exception e){
+					if(request instanceof LoginRequest) {
+						//request = (LoginRequest)request;
+						System.out.println((request).toString()+" "+((LoginRequest)request).getChallenge());
+						//TODO SEND RESPONSE 
+						LoginResponse response = new LoginResponse(Type.OK);
+						response.setClientchallenge(((LoginRequest) request).getChallenge());
+						// TODO 
+						channel.sendMessageResponse(response);
+						//TODO SWITCH TO AES CHANNEL
+						
+						//TODO LOGIN USER SUCCESS
+						//SEND login(request);
+					}
+					else if(request instanceof LogoutRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(logout());
+					}
+					else if(request instanceof CreditsRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(credits());
+					}
+					else if(request instanceof BuyRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(buy((BuyRequest)requestObj));
+					}
+					else if(request instanceof ListRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(list());
+					}
+					else if(request instanceof UploadRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(upload((UploadRequest)requestObj));
+					}
+					else if(request instanceof DownloadTicketRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(download((DownloadTicketRequest)requestObj));
+					}
+				} catch (ClassNotFoundException e) {
+					System.out.println("ClassNotFoundException, really?");
+					e.printStackTrace();
+				} catch (IOException e) {
+					if(currentUser != null) currentUser.setOnline(false);
+					System.out.println("Shut down client proxy instance");
+					return;
+				} catch (InvalidKeyException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchAlgorithmException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchPaddingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalBlockSizeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (BadPaddingException e) {
+					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				
+				
 				/*
 				else if(requestObj instanceof LogoutRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());

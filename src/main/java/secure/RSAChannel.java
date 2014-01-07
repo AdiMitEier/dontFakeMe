@@ -50,36 +50,51 @@ public class RSAChannel extends Base64Channel{
 		this.sendByteArray(rsa);
 	}
 	
-	public Response receiveMessageResponse() throws Exception {
-		/*//DECODE BASE64
-		this.input = new ObjectInputStream(tcpchannelsocket.getInputStream());
-		byte[] messagearray = (byte[]) input.readObject();
-		messagearray = this.decodeBase64(messagearray);
-		
-		//DECODE RSA
-		initdecryptChipher();
-		byte[]rsa = decrypt.doFinal(messagearray);
-		
-		//DECODE BASE64 CHALLENGE LOGIN
-		Response res = (Response)this.byteArraytoObject(rsa);
-		
-		if(res instanceof LoginResponse){
-			LoginResponse response = (LoginResponse)res;
-			//byte[] challenge = res.
-			//TODO 
-		}*/
-		//return (Response)res;
-		return null;
+	public Response receiveMessageResponse() throws ClassNotFoundException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException{
+		//BASE 64 
+		byte[] rec = this.receiveByteArray();
+		// RSA DECODEN
+		this.initdecryptChipher();
+		byte[]rsa = this.decrypt.doFinal(rec);
+		// TO OBJECT
+		Response reg = (Response)this.byteArraytoObject(rsa);
+		if(reg instanceof LoginResponse){
+			reg=(LoginResponse)reg;
+			//DECODE CLIENT CHALLENGE
+			((LoginResponse) reg).setClientchallenge(this.decodeBase64(((LoginResponse) reg).getClientchallenge()));
+			//DECODE PROXY CHALLENGE
+			((LoginResponse) reg).setProxychallenge(this.decodeBase64(((LoginResponse) reg).getProxychallenge()));
+			//DECODE SECRET KEY
+			((LoginResponse) reg).setSecretkey(this.decodeBase64(((LoginResponse) reg).getSecretkey()));
+			//DECODE IV PARAM
+			((LoginResponse) reg).setIvparameter(this.decodeBase64(((LoginResponse) reg).getIvparameter()));
+		}
+		return reg;
 	}
 	
 	//PROXY
 	
-	public void sendMessageResponse(Response message) throws Exception {
-		// TODO Auto-generated method stub
-		
+	public void sendMessageResponse(Response message) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException{
+		if(message instanceof LoginResponse){
+		//GET CHALLENGE AND BASE 64 ENCODE
+		byte[] challenge=((LoginResponse) message).getClientchallenge();
+		((LoginResponse) message).setClientchallenge(this.encodeBase64(challenge));
+		//BASE 64 ENCODE PROXY CHALLENGE
+		((LoginResponse) message).setProxychallenge(this.encodeBase64(this.generateSecureChallenge()));
+		//BASE 64 ENCODE PROXY SECRET KEY
+		((LoginResponse) message).setSecretkey(this.encodeBase64(this.generateSecretKey()));
+		//BASE 64 ENCODE PROXY IV PARAMETER
+		((LoginResponse) message).setIvparameter(this.encodeBase64(this.generateSecureIV()));
+		//RSA DECODEN & toArray
+		byte[] array = this.toByteArray(message);
+		this.initencryptChipher();
+		byte[]rsa=encrypt.doFinal(array);
+		//ENCODE BASE 64 & SEND
+		this.tcpChannel.sendByteArray(rsa);
+		}
 	}
 	
-	public Request receiveMessageRequest() throws Exception {
+	public Request receiveMessageRequest() throws ClassNotFoundException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException{
 		//BASE 64 
 		byte[] rec = this.receiveByteArray();
 		// RSA DECODEN
@@ -94,6 +109,18 @@ public class RSAChannel extends Base64Channel{
 		}
 		
 		return reg;
+	}
+	public byte[] generateSecretKey(){
+		SecureRandom secureRandom = new SecureRandom();
+		final byte[] number = new byte[32]; //256 bit
+		secureRandom.nextBytes(number);
+		return number;
+	}
+	public byte[] generateSecureIV(){
+		SecureRandom secureRandom = new SecureRandom(); 
+		final byte[] number = new byte[16]; 
+		secureRandom.nextBytes(number);
+		return number;
 	}
 	public byte[] generateSecureChallenge(){
 		// generates a 32 byte secure random number 
