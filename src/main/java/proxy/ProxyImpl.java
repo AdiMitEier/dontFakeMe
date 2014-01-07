@@ -1,17 +1,28 @@
 package proxy;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.security.Key;
+import java.security.PrivateKey;
 import java.util.HashSet;
 import java.util.Set;
 
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.util.encoders.Hex;
 
+import secure.IChannel;
+import secure.RSAChannel;
+import secure.TCPChannel;
 import util.ChecksumUtils;
+import message.Request;
 import message.Response;
 import message.request.*;
 import message.response.*;
@@ -21,29 +32,51 @@ import model.FileModel;
 import model.FileServerModel;
 import model.UserModel;
 
+import java.security.KeyPair; 
+import java.security.PrivateKey; 
+
+import org.bouncycastle.openssl.PEMReader; 
+import org.bouncycastle.openssl.PasswordFinder;
+
 public class ProxyImpl implements IProxy, Runnable {
 	
 	private Socket socket;
 	ProxyCliImpl proxyCli;
 	UserModel currentUser = null;
+	Key privateKey;
 	
 	public ProxyImpl(Socket socket, ProxyCliImpl proxyCli) {
 		this.socket = socket;
 		this.proxyCli = proxyCli;
-		
+
+		privateKey = null;
 	}
 	
 	@Override
 	public void run() {
+		IChannel tcpchannel = null;
+		try{
+		tcpchannel = new TCPChannel(socket);
+		} catch(IOException e){
+			e.printStackTrace();
+		}
+		RSAChannel channel = new RSAChannel(tcpchannel,privateKey);
 		while(true) {
 			try {
 				ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 				Object requestObj = input.readObject();
-				if(requestObj instanceof LoginRequest) {
+				/*if(requestObj instanceof LoginRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(login((LoginRequest)requestObj));
+				}*/
+				try{
+					Request request = channel.receiveMessageRequest();
+					System.out.println(((LoginRequest)request).toString());
+				}catch(Exception e){
+					e.printStackTrace();
 				}
-				else if(requestObj instanceof LogoutRequest) {
+				
+				/*else*/ if(requestObj instanceof LogoutRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(logout());
 				}

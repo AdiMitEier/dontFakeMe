@@ -18,6 +18,7 @@ import java.security.PublicKey;
 
 import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.openssl.PEMWriter;
+import secure.TCPChannel;
 
 import proxy.IProxyRMI;
 import secure.IChannel;
@@ -45,6 +46,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	private String proxyHost;
 	private int proxyRMIPort;
 	private String keysDir;
+	private String publicKeyDir;
 	private String loggedInUserName;
 	Registry registry;
 	IProxyRMI proxyRMI;
@@ -83,7 +85,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
 		dir = config.getString("download.dir");
-		keysDir = config.getString("proxy.key");
+		publicKeyDir = config.getString("proxy.key");
 	}
 	
 	private void readMCConfig() {
@@ -91,6 +93,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		bindingName = mcConfig.getString("binding.name");
 		proxyHost = mcConfig.getString("proxy.host");
 		proxyRMIPort = mcConfig.getInt("proxy.rmi.port");
+		keysDir = mcConfig.getString("keys.dir");
 	}
 	
 	private boolean initRMI() {
@@ -116,20 +119,20 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		}
 		try {
 			
-			/*PEMReader in = new PEMReader(new FileReader(keysDir)); 
+			PEMReader in = new PEMReader(new FileReader(publicKeyDir)); 
 			PublicKey publicKey = (PublicKey) in.readObject();
 			in.close();
 			
 			clientSocket = new Socket(host,tcpPort);
 			//Socket socket = new Socket(host,tcpPort);
-			channel = new RSAChannel(clientSocket, publicKey);
-			
+			IChannel tcpchannel = new TCPChannel(clientSocket);
+			RSAChannel channel = new RSAChannel(tcpchannel,publicKey);
 			
 			try {
 				channel.sendMessageRequest(new LoginRequest(username, password));
 			} catch (Exception e1) {
 				e1.printStackTrace();
-			}*/
+			}
 			
 			
 			//clientSocket = new Socket(host,tcpPort);

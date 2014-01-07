@@ -1,9 +1,17 @@
 package proxy;
 
 import java.io.FileNotFoundException;
+import java.security.KeyPair; 
+import java.security.PrivateKey; 
+
+import org.bouncycastle.openssl.PEMReader; 
+import org.bouncycastle.openssl.PasswordFinder;
+
+import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
@@ -74,6 +82,8 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	private int proxyRMIPort;
 	private String keysDir;
 	private Registry registry;
+	private String privateKeyDir;
+	private Key privateKey;
 	
 	private DatagramSocket datagramSocket;
 	private ServerSocket serverSocket;
@@ -102,6 +112,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		readMCConfig();
 		readUserConfig();
 		initRMI();
+		initPrivateKey();
 		worker.execute(new TcpListener(this));
 		worker.execute(new UdpListener());
 		timer = new Timer();
@@ -111,12 +122,47 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		shellThread.start();
 	}
 	
+	private void initPrivateKey(){
+		PEMReader in = null;
+		try {
+			in = new PEMReader(new FileReader(privateKeyDir), new PasswordFinder() {
+				
+			    @Override
+			    public char[] getPassword() {
+			    // reads the password from standard input for decrypting the private key
+			    System.out.println("Enter pass phrase:");
+				    try {
+						return new BufferedReader(new InputStreamReader(System.in)).readLine().toCharArray();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				    return null;
+				    }
+
+				});
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		KeyPair keyPair = null;
+		try {
+			keyPair = (KeyPair) in.readObject();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		privateKey = keyPair.getPrivate();
+}
+	
 	private void readProxyConfig() {
 		tcpPort = proxyConfig.getInt("tcp.port");
 		udpPort = proxyConfig.getInt("udp.port");
 		timeOut = proxyConfig.getInt("fileserver.timeout");
 		checkPeriod = proxyConfig.getInt("fileserver.checkPeriod");
 		secretKey = FileUtils.readKeyFromFile(proxyConfig.getString("hmac.key"));
+		privateKeyDir = proxyConfig.getString("key");
 	}
 	
 	private void readMCConfig() {
@@ -541,5 +587,9 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 		} catch (IOException e) {
 			return new MessageResponse("Could not write public key");
 		} 
+	}
+	
+	public Key getPrivateKey(){
+		return this.privateKey;
 	}
 }
