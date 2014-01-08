@@ -129,11 +129,31 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			RSAChannel channel = new RSAChannel(tcpchannel,publicKey);
 			
 			try {
-				channel.sendMessageRequest(new LoginRequest(username, password));
+				//LOGIN REQEUST ERSTELLEN MIT CHALLENGE NUMBER
+				LoginRequest loginreq=new LoginRequest(username, password);
+				byte[] loginchallenge = channel.generateSecureChallenge();
+				loginreq.setChallenge(loginchallenge);
+				
+				//SENDE LOGIN REQUEST
+				channel.sendMessageRequest(loginreq);
+				
+				//EMPFANGE RESPONSE
 				Response response = channel.receiveMessageResponse();
 				if(response instanceof LoginResponse){
 					response = (LoginResponse)response;
-					System.out.println("Response:"+response.toString()+" "+new String(((LoginResponse)response).getClientchallenge()));
+					if(((LoginResponse) response).getType()==LoginResponse.Type.OK){
+						String challenge = new String(((LoginResponse)response).getClientchallenge());
+						if(new String(loginchallenge).equals(challenge)){
+							System.out.println("Response Erhalten & Challenge richtig");
+							
+							//TODO SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
+							byte[] proxychallenge = ((LoginResponse)response).getProxychallenge();
+							byte[] ivparam = ((LoginResponse)response).getIvparameter();
+							byte[] secret = ((LoginResponse)response).getSecretkey();
+							//AES CHANNEL
+							// TODO init AES with parameters
+						}
+					}
 				}
 			} catch (Exception e1) {
 				e1.printStackTrace();

@@ -77,18 +77,21 @@ public class ProxyImpl implements IProxy, Runnable {
 				try{
 					Request request = channel.receiveMessageRequest();
 					if(request instanceof LoginRequest) {
-						//request = (LoginRequest)request;
-						System.out.println((request).toString()+" "+new String(((LoginRequest)request).getChallenge()));
-						//TODO SEND RESPONSE 
-						LoginResponse response = new LoginResponse(Type.WRONG_CREDENTIALS);
+						//SEND RESPONSE 
+						LoginResponse response = new LoginResponse(Type.OK);
 						response.setClientchallenge(((LoginRequest) request).getChallenge());
-						//response.setMessage(((LoginRequest) request).getChallenge());
-						// TODO 
+						byte[] secretkey = channel.generateSecretKey();
+						byte[] ivparam = channel.generateSecureIV();
+						byte[] proxychallenge = channel.generateSecureChallenge();
+						response.setSecretkey(secretkey);
+						response.setIvparameter(ivparam);
+						response.setProxychallenge(proxychallenge);
 						channel.sendMessageResponse(response);
 						//TODO SWITCH TO AES CHANNEL
+						// init AES Chann with paramterrs 
 						
 						//TODO LOGIN USER SUCCESS
-						//SEND login(request);
+						// login(request);
 					}
 					else if(request instanceof LogoutRequest) {
 						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());

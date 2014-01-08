@@ -36,102 +36,20 @@ public class RSAChannel extends Base64Channel{
 	}
 	
 	//CLIENT
-	
+	// !login <username> <client-challenge> <password>
 	public void sendMessageRequest(Request message) throws IllegalBlockSizeException, BadPaddingException, Exception{
-		//CHALLENGE for login & BASE64
-		byte[] encode = this.encodeBase64(this.generateSecureChallenge());
 		if(message instanceof LoginRequest){
-			((LoginRequest) message).setChallenge(encode);
-		}
-		
-		//RSA MESSAGE(
+		byte[] encode = this.encodeBase64(((LoginRequest) message).getChallenge());
+		String m = "!login "+((LoginRequest) message).getUsername()+ " " +new String(encode)+ " "+((LoginRequest) message).getPassword();
+		//RSA MESSAGE
 		initencryptChipher();
-		byte[]rsa = encrypt.doFinal(this.toByteArray(message));		
-	
+		byte[]rsa = encrypt.doFinal(m.getBytes());		
 		//ENCODE BASE64
 		this.sendByteArray(rsa);
+		}
 	}
 	
 	public Response receiveMessageResponse() throws ClassNotFoundException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException{
-		/*//BASE 64 
-		byte[] rec = this.receiveByteArray();
-		// RSA DECODEN
-		this.initdecryptChipher();
-		byte[]rsa = this.decrypt.doFinal(rec);
-		// TO OBJECT
-		Response reg = (Response)this.byteArraytoObject(rsa);
-		if(reg instanceof LoginResponse){
-			reg=(LoginResponse)reg;
-			//DECODE CLIENT CHALLENGE
-			((LoginResponse) reg).setClientchallenge(this.decodeBase64(((LoginResponse) reg).getClientchallenge()));
-			//DECODE PROXY CHALLENGE
-			((LoginResponse) reg).setProxychallenge(this.decodeBase64(((LoginResponse) reg).getProxychallenge()));
-			//DECODE SECRET KEY
-			((LoginResponse) reg).setSecretkey(this.decodeBase64(((LoginResponse) reg).getSecretkey()));
-			//DECODE IV PARAM
-			((LoginResponse) reg).setIvparameter(this.decodeBase64(((LoginResponse) reg).getIvparameter()));
-		}
-		return reg;*/
-		/*
-		//BASE 64 
-		byte[] rec = this.receiveByteArray();
-		// TO OBJECT
-		Response reg = (Response)this.byteArraytoObject(rec);
-		
-		if(reg instanceof LoginResponse){
-			reg=(LoginResponse)reg;
-			
-			//DECODE CLIENT CHALLENGE RSA & BASE 64
-			this.initdecryptChipher();
-			byte[] challenge = ((LoginResponse) reg).getClientchallenge();
-			((LoginResponse) reg).setClientchallenge(this.decodeBase64(decrypt.doFinal(challenge)));
-			
-			//DECODE PROXY CHALLENGE RSA & BASE 64
-			byte[] proxychallenge = ((LoginResponse) reg).getProxychallenge();
-			((LoginResponse) reg).setProxychallenge(this.decodeBase64(decrypt.doFinal(proxychallenge)));
-			
-			//DECODE SECRET KEY RSA & BASE 64
-			byte[] secretkey = ((LoginResponse) reg).getSecretkey();
-			((LoginResponse) reg).setSecretkey(this.decodeBase64(decrypt.doFinal(secretkey)));
-			
-			//DECODE IV PARAM RSA & BASE 64
-			byte[] ivparam = ((LoginResponse) reg).getIvparameter();
-			((LoginResponse) reg).setIvparameter(this.decodeBase64(decrypt.doFinal(ivparam)));
-		}
-		return reg;*/
-		/*byte[] rec = this.receiveByteArray();
-		// TO OBJECT
-		Response message = (Response)this.byteArraytoObject(rec); 
-		
-		if(message instanceof LoginResponse){
-			//RSA DECODE
-			String all = new String(((LoginResponse) message).getMessage());
-			this.initdecryptChipher();
-			byte[]rsa = decrypt.doFinal(all.getBytes());
-			//BAS64 DECODE
-			all = new String(rsa);
-			Scanner scan = new Scanner(all);
-			//while(scan.hasNext()){
-				String chal = scan.next();
-				String proxyc = scan.next();
-				String secret = scan.next();
-				String iv = scan.next();
-			//}
-			
-			//GET CHALLENGE AND BASE 64 ENCODE
-			byte[] challenge = this.decodeBase64(chal.getBytes());
-			//GET PROXY CHALLENGE AND ENCODE BASE 64
-			byte[] proxychallenge = this.decodeBase64(proxyc.getBytes());
-			//GET PROXY SECRET 
-			byte[] secretkey = this.decodeBase64(secret.getBytes());
-			//GET PROXY IV
-			byte[] ivparam = this.decodeBase64(iv.getBytes());
-			
-			String m = new String(challenge)+ " " +new String(proxychallenge)+" "+new String(secretkey)+" "+new String(ivparam);
-			
-			((LoginResponse) message).setMessage(m.getBytes());
-		}
-		return message;*/
 		
 		byte[] rec = this.receiveByteArray();
 		//RSA DECODE
@@ -173,88 +91,17 @@ public class RSAChannel extends Base64Channel{
 	//PROXY
 	
 	public void sendMessageResponse(Response message) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException{
-		/*if(message instanceof LoginResponse){
-		//GET CHALLENGE AND BASE 64 ENCODE
-		byte[] challenge=((LoginResponse) message).getClientchallenge();
-		((LoginResponse) message).setClientchallenge(this.encodeBase64(challenge));
-		//BASE 64 ENCODE PROXY CHALLENGE
-		((LoginResponse) message).setProxychallenge(this.encodeBase64(this.generateSecureChallenge()));
-		//BASE 64 ENCODE PROXY SECRET KEY
-		((LoginResponse) message).setSecretkey(this.encodeBase64(this.generateSecretKey()));
-		//BASE 64 ENCODE PROXY IV PARAMETER
-		((LoginResponse) message).setIvparameter(this.encodeBase64(this.generateSecureIV()));
-		//RSA ENCODEN & toArray
-		byte[] array = this.toByteArray(message);
-		this.initencryptChipher();
-		byte[]rsa=encrypt.doFinal(array);
-		//ENCODE BASE 64 & SEND
-		this.tcpChannel.sendByteArray(rsa);*/
-		
-		/*if(message instanceof LoginResponse){
-			
-			//GET CHALLENGE AND BASE 64 ENCODE
-			byte[] challenge=this.encodeBase64(((LoginResponse) message).getClientchallenge());
-			
-			//RSA CHALLENGE & init Chipher
-			this.initencryptChipher();
-			((LoginResponse) message).setClientchallenge(encrypt.doFinal(challenge));
-			
-			//BASE 64 ENCODE & RSA PROXY CHALLENGE
-			byte[] proxychallenge = this.encodeBase64(this.generateSecureChallenge());
-			((LoginResponse) message).setProxychallenge(encrypt.doFinal(proxychallenge));
-			
-			//BASE 64 ENCODE & RSA PROXY SECRET KEY
-			byte[] secretkey = this.encodeBase64(this.generateSecretKey());
-			((LoginResponse) message).setSecretkey(encrypt.doFinal(secretkey));
-			
-			//BASE 64 ENCODE & RSA PROXY IV PARAMETER
-			byte[] ivparam = this.encodeBase64(this.generateSecureIV());
-			((LoginResponse) message).setIvparameter(encrypt.doFinal(ivparam));
-			
-			//toArray
-			byte[] array = this.toByteArray(message);
-			System.out.println("Länge" + array.length);
-			//ENCODE BASE 64 & SEND
-			this.tcpChannel.sendByteArray(array);
-		}*/
-		/*
-		if(message instanceof LoginResponse){
-			
-			//GET CHALLENGE AND BASE 64 ENCODE
-			byte[] challenge=this.encodeBase64(((LoginResponse) message).getMessage());
-			//GET PROXY CHALLENGE AND ENCODE BASE 64
-			byte[] proxychallenge = this.encodeBase64(this.generateSecureChallenge());
-			//GET PROXY SECRET 
-			byte[] secretkey = this.encodeBase64(this.generateSecretKey());
-			//GET PROXY IV
-			byte[] ivparam = this.encodeBase64(this.generateSecureIV());
-			
-			String m = new String(challenge)+ " " +new String(proxychallenge)+" "+new String(secretkey)+" "+new String(ivparam);
-			
-			byte[]brsa = m.getBytes();
-			System.out.println("before rsa :"+brsa.length);
-			//RSA & init Chipher
-			this.initencryptChipher();
-			((LoginResponse) message).setMessage(encrypt.doFinal(brsa));
-			System.out.println("Message: "+((LoginResponse)message).toString());
-			//toArray
-			byte[] array = this.toByteArray(message);
-			System.out.println("Länge Message" + array.length);
-			
-			//ENCODE BASE 64 & SEND
-			//this.tcpChannel.sendByteArray(array);//TODO
-			this.sendByteArray(array);
-		}*/
+	
 		if(message instanceof LoginResponse){
 			//GET CHALLENGE AND BASE 64 ENCODE
 			byte[] challenge=this.encodeBase64(((LoginResponse) message).getClientchallenge());
 			//byte[] challenge=((LoginResponse) message).getClientchallenge();
 			//GET PROXY CHALLENGE AND ENCODE BASE 64
-			byte[] proxychallenge = this.encodeBase64(this.generateSecureChallenge());
+			byte[] proxychallenge = this.encodeBase64(((LoginResponse) message).getProxychallenge());
 			//GET PROXY SECRET 
-			byte[] secretkey = this.encodeBase64(this.generateSecretKey());
+			byte[] secretkey = this.encodeBase64(((LoginResponse) message).getSecretkey());
 			//GET PROXY IV
-			byte[] ivparam = this.encodeBase64(this.generateSecureIV());
+			byte[] ivparam = this.encodeBase64(((LoginResponse) message).getIvparameter());
 			
 			String m = "!ok "+new String(challenge)+ " " +new String(proxychallenge)+" "+new String(secretkey)+" "+new String(ivparam);
 			//System.out.println("Before RSA AFTER BASE 64DECODE "+m);
@@ -267,22 +114,27 @@ public class RSAChannel extends Base64Channel{
 			this.sendByteArray(rsa);
 		}
 	}
-	
+	//!login <username> <client-challenge> <password>
 	public Request receiveMessageRequest() throws ClassNotFoundException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException{
 		//BASE 64 
 		byte[] rec = this.receiveByteArray();
 		// RSA DECODEN
 		this.initdecryptChipher();
 		byte[]rsa = this.decrypt.doFinal(rec);
-		// TO OBJECT
-		Request reg = (Request)this.byteArraytoObject(rsa);
-		if(reg instanceof LoginRequest){
-			reg=(LoginRequest)reg;
-			byte[]challenge= ((LoginRequest) reg).getChallenge();
-			((LoginRequest) reg).setChallenge(this.decodeBase64(challenge));
-		}
+		// TO OBJECT STRING !login <username> <client-challenge>
+		String m = new String(rsa);
+		Scanner scan = new Scanner(m);
+		String login = scan.next();
+		String username = scan.next();
+		String challenge = scan.next();
+		String pw = scan.next();
 		
-		return reg;
+		byte[]chall = this.decodeBase64(challenge.getBytes());
+		
+		LoginRequest loginrequest = new LoginRequest(username,pw);
+		loginrequest.setChallenge(chall);
+		
+		return loginrequest;
 	}
 	public byte[] generateSecretKey(){
 		SecureRandom secureRandom = new SecureRandom();
