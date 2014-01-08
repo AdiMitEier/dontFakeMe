@@ -20,7 +20,7 @@ public class LoginResponse implements Response {
 	private static final long serialVersionUID = 3134831924072300109L;
 	private byte[] clientchallenge;
 	private byte[] proxychallenge;
-	private byte[] secretkey;
+	private Key secretkey;
 	private byte[] ivparameter;
 	
 	public enum Type {
@@ -67,11 +67,11 @@ public class LoginResponse implements Response {
 		return proxychallenge;
 	}
 
-	public void setSecretkey(byte[] secretkey) {
+	public void setSecretkey(Key secretkey) {
 		this.secretkey = secretkey;
 	}
 
-	public byte[] getSecretkey() {
+	public Key getSecretkey() {
 		return secretkey;
 	}
 

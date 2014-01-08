@@ -82,7 +82,7 @@ public class ProxyImpl implements IProxy, Runnable {
 						//SEND RESPONSE 
 						LoginResponse response = new LoginResponse(Type.OK);
 						response.setClientchallenge(((LoginRequest) request).getChallenge());
-						byte[] secretkey = ((RSAChannel) channel).generateSecretKey();
+						Key secretkey = ((RSAChannel) channel).generateSecretKey();
 						byte[] ivparam = ((RSAChannel) channel).generateSecureIV();
 						byte[] proxychallenge = ((RSAChannel) channel).generateSecureChallenge();
 						response.setSecretkey(secretkey);

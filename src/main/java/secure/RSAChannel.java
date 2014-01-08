@@ -8,7 +8,9 @@ import java.net.Socket;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 import message.Request;
 import message.Response;
@@ -140,11 +142,12 @@ public class RSAChannel extends Base64Channel{
 		
 		return loginrequest;
 	}
-	public byte[] generateSecretKey(){
-		SecureRandom secureRandom = new SecureRandom();
-		final byte[] number = new byte[32]; //256 bit
-		secureRandom.nextBytes(number);
-		return number;
+	public Key generateSecretKey() throws NoSuchAlgorithmException{
+		KeyGenerator generator = KeyGenerator.getInstance("AES"); 
+		// KEYSIZE is in bits 
+		generator.init(256); 
+		SecretKey key = generator.generateKey(); 
+		return key;
 	}
 	public byte[] generateSecureIV(){
 		SecureRandom secureRandom = new SecureRandom(); 
@@ -174,6 +177,6 @@ public class RSAChannel extends Base64Channel{
 		//System.out.println(publickey);
 		decrypt.init(Cipher.DECRYPT_MODE,this.key);
 	}
-	//TODO receive Message
+
 	
 }
