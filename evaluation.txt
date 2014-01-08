@@ -1,3 +1,8 @@
+HP Pavilion Notebook
+Windows 7 Pro SP 1 x64
+Intel i7, 4 Kerne @ 1.6Ghz
+4GB RAM
+------------------------------------------------
 clients=1
 uploadsPerMin=0
 downloadsPerMin=3500 und mehr
@@ -16,7 +21,6 @@ testDurationSec=60
 
 Stabil, Memory gleichbleibend, Successful downloads/uploads ~2000
 ------------------------------------------------
-
 clients=100 und mehr
 uploadsPerMin=20 und mehr
 downloadsPerMin=20 und mehr
@@ -25,3 +29,22 @@ overwriteRatio=0.0
 testDurationSec=360
 
 Memory gleichbleibend, Verbindungsfehler immer bei ca 3200 downloads/uploads
+------------------------------------------------
+clients=1
+uploadsPerMin=1000 und mehr
+downloadsPerMin=1000 und mehr
+fileSizeKB=100
+overwriteRatio=0.0
+testDurationSec=60
+
+Successful downloads/uploads ~820
+------------------------------------------------
+clients=150 und mehr
+uploadsPerMin=6 und mehr
+downloadsPerMin=6 und mehr
+fileSizeKB=10000
+overwriteRatio=0.0
+testDurationSec=360
+
+Successful downloads/uploads ~370 (~74 pro minute)
+------------------------------------------------

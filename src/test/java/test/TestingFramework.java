@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,7 +81,6 @@ public class TestingFramework {
 				new TestInputStream())));
 		}
 		Thread.sleep(Util.WAIT_FOR_COMPONENT_STARTUP*3);
-		System.out.println("-----------------------------------------------------");
 		System.out.println("Starting test");
 		System.out.println("-----------------------------------------------------");
 		subscribeClient.login("alice", "12345");
@@ -100,7 +100,7 @@ public class TestingFramework {
 			if(downloadsPerMin>0)
 				downloadTimer.schedule(new DownloadTask(client,false), 0l, (long) 60000 / downloadsPerMin);
 			if(uploadsPerMin>0)
-				downloadTimer.schedule(new UploadTask(client,false), 0l, (long) 60000 / uploadsPerMin);
+				downloadTimer.schedule(new UploadTask(client,true), 0l, (long) 60000 / uploadsPerMin);
 		}	
 	}
 
@@ -121,31 +121,10 @@ public class TestingFramework {
 	}
 	
 	private void generateTestFile() throws IOException  {
-		String newline = System.getProperty("line.separator");
-		Writer output = null;
 		File file = new File("files/client/testFile.txt");
 		file.delete();
-		output = new BufferedWriter(new FileWriter(file, true));
-		output.write("");
-		output.write(newline);
-
-        long size = getFileSize("files/client/testFile.txt");
-		while(size < fileSizeKB*1000){
-			output.write("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-			output.write(newline);
-            output.flush();
-            size = getFileSize("files/client/testFile.txt");
-		}
-		output.close();
-	}
-	
-	private long getFileSize(String filename) {
-		File file = new File(filename);        
-		if (!file.exists() || !file.isFile()) {
-			System.out.println("File does not exist");
-			return -1;
-		}
-		return file.length();
+		RandomAccessFile raf = new RandomAccessFile(file, "rw");
+		raf.setLength(fileSizeKB * 1024);
 	}
 
 	private class DownloadTask extends TimerTask {
