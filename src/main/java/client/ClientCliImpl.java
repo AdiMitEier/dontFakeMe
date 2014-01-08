@@ -55,7 +55,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	}
 	
 	public ClientCliImpl(Config config, Shell shell) {
-		System.out.println("Starting client");
+		//System.out.println("Starting client");
 		this.config = config;
 		this.shell = shell;
 		readConfig();
@@ -107,7 +107,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	@Command
 	public LoginResponse login(String username, String password) throws IOException {
 		if(clientSocket != null && !clientSocket.isClosed()) {
-			System.out.println("You are already logged in!");
+			shell.writeLine("You are already logged in!");
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
 		try {
@@ -324,7 +324,12 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 
 	@Override
 	public void notifySubscription(String file, int number) throws RemoteException {
-		System.out.println("Notification: "+file+" got downloaded "+number+" times!.");
+		try {
+			shell.writeLine("Notification: "+file+" got downloaded "+number+" times!.");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override

@@ -91,7 +91,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 	}
 	
 	public ProxyCliImpl(Config config, Shell shell) {
-		System.out.println("Starting proxy");
+		//System.out.println("Starting proxy");
 		proxyConfig = config;
 		this.shell = shell;
 		fileServers = new ArrayList<FileServerModel>();
@@ -179,7 +179,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 						worker.execute(new ProxyImpl(socket, proxyCli));
 				}
 			} catch (IOException e) {
-				System.out.println("Proxy: TcpListener shutdown");
+				//System.out.println("Proxy: TcpListener shutdown");
 				return;
 			}
 		}
@@ -210,7 +210,7 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 					}
 				}
 			} catch (IOException e) {
-				System.out.println("Proxy: UdpListener shutdown");
+				//System.out.println("Proxy: UdpListener shutdown");
 				return;
 			}
 		}
@@ -348,10 +348,10 @@ public class ProxyCliImpl implements IProxyCli, IProxyRMI {
 			if(user.getSubscriptions().containsKey(fileName)) {
 				int downloadsSinceSubscription = getDownloads(fileName) - user.getSubscriptions().get(fileName)[1];
 				int downloadsToNotify = user.getSubscriptions().get(fileName)[0];
-				if(downloadsSinceSubscription < downloadsToNotify) continue;
+				if(downloadsSinceSubscription % downloadsToNotify != 0) continue;
 				try {
 					user.getClientObject().notifySubscription(fileName,downloadsToNotify);
-					user.getSubscriptions().remove(fileName);
+					//user.getSubscriptions().remove(fileName);
 				} catch (RemoteException e) {
 					System.out.println("Failed to notify client, clearing its subscriptions");
 					user.getSubscriptions().clear();

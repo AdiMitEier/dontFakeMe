@@ -71,7 +71,7 @@ public class ProxyImpl implements IProxy, Runnable {
 				System.out.println("ClassNotFoundException, really?");
 			} catch (IOException e) {
 				if(currentUser != null) currentUser.setOnline(false);
-				System.out.println("Shut down client proxy instance");
+				//System.out.println("Shut down client proxy instance");
 				return;
 			}
 		}

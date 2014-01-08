@@ -42,19 +42,6 @@
 		</junit>
 	</target>
 	
-	<!--<target name="testFramework" description="Testing Framework" depends="compile">
-		<mkdir dir="${reports.dir}" />
-		<junit includeantruntime="true" logfailedtests="true" showoutput="true" printsummary="true">
-			<classpath refid="project.classpath" />
-			<formatter type="plain" />
-			<batchtest fork="false" todir="${reports.dir}">
-				<fileset dir="${test.src.dir}">
-					<include name="**/TestingFramework.java" />
-				</fileset>
-			</batchtest>
-		</junit>
-	</target>-->
-	
 	<target name="testFramework" depends="compile" description="Testing Framework">
 		<java classname="test.TestingFramework" fork="true" classpathref="project.classpath" />
 	</target>

@@ -67,7 +67,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 	}
 	
 	public FileServerCliImpl(Config config, Shell shell) {
-		System.out.println("Starting fileserver");
+		//System.out.println("Starting fileserver");
 		this.config = config;
 		this.shell = shell;
 		readConfig();
@@ -115,7 +115,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 				datagramSocket.send(sendPacket);
 				datagramSocket.close();
 			} catch (IOException e) {
-				System.out.println("AliveMessages stopped");
+				//System.out.println("AliveMessages stopped");
 				return;
 			}	
 		}
@@ -163,7 +163,7 @@ public class FileServerCliImpl implements IFileServerCli, IFileServer{
 					}
 				} 		
 			} catch (IOException e) {
-				System.out.println("FileServer: TcpListener shutdown");
+				//System.out.println("FileServer: TcpListener shutdown");
 				return;
 			}
 		}

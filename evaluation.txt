@@ -1,0 +1,27 @@
+clients=1
+uploadsPerMin=0
+downloadsPerMin=3500 und mehr
+fileSizeKB=1
+overwriteRatio=0.0
+testDurationSec=60
+
+Successful downloads ~3000
+------------------------------------------------
+clients=100
+uploadsPerMin=20
+downloadsPerMin=20
+fileSizeKB=1
+overwriteRatio=0.0
+testDurationSec=60
+
+Stabil, Memory gleichbleibend, Successful downloads/uploads ~2000
+------------------------------------------------
+
+clients=100 und mehr
+uploadsPerMin=20 und mehr
+downloadsPerMin=20 und mehr
+fileSizeKB=1
+overwriteRatio=0.0
+testDurationSec=360
+
+Memory gleichbleibend, Verbindungsfehler immer bei ca 3200 downloads/uploads
