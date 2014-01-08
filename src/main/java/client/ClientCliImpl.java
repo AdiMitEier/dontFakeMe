@@ -21,6 +21,7 @@ import org.bouncycastle.openssl.PEMWriter;
 import secure.TCPChannel;
 
 import proxy.IProxyRMI;
+import secure.AESChannel;
 import secure.IChannel;
 import secure.RSAChannel;
 import util.Config;
@@ -126,19 +127,21 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			clientSocket = new Socket(host,tcpPort);
 			//Socket socket = new Socket(host,tcpPort);
 			IChannel tcpchannel = new TCPChannel(clientSocket);
-			RSAChannel channel = new RSAChannel(tcpchannel,publicKey);
+			//RSAChannel channel = new RSAChannel(tcpchannel,publicKey);
+			IChannel channel = new RSAChannel(tcpchannel);
+			((RSAChannel)channel).setKey(publicKey);
 			
 			try {
 				//LOGIN REQEUST ERSTELLEN MIT CHALLENGE NUMBER
 				LoginRequest loginreq=new LoginRequest(username, password);
-				byte[] loginchallenge = channel.generateSecureChallenge();
+				byte[] loginchallenge = ((RSAChannel) channel).generateSecureChallenge();
 				loginreq.setChallenge(loginchallenge);
 				
 				//SENDE LOGIN REQUEST
-				channel.sendMessageRequest(loginreq);
+				((RSAChannel) channel).sendMessageRequest(loginreq);
 				
 				//EMPFANGE RESPONSE
-				Response response = channel.receiveMessageResponse();
+				Response response = ((RSAChannel) channel).receiveMessageResponse();
 				if(response instanceof LoginResponse){
 					response = (LoginResponse)response;
 					if(((LoginResponse) response).getType()==LoginResponse.Type.OK){
@@ -151,7 +154,10 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 							byte[] ivparam = ((LoginResponse)response).getIvparameter();
 							byte[] secret = ((LoginResponse)response).getSecretkey();
 							//AES CHANNEL
-							// TODO init AES with parameters
+							channel = new AESChannel(tcpchannel);
+							((AESChannel)channel).setSecretkey(secret);
+							((AESChannel)channel).setIvparam(ivparam);
+							
 						}
 					}
 				}

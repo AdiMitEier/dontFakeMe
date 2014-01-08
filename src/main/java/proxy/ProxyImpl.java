@@ -23,6 +23,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.util.encoders.Hex;
 
+import secure.AESChannel;
 import secure.IChannel;
 import secure.RSAChannel;
 import secure.TCPChannel;
@@ -65,7 +66,8 @@ public class ProxyImpl implements IProxy, Runnable {
 		} catch(IOException e){
 			e.printStackTrace();
 		}
-		RSAChannel channel = new RSAChannel(tcpchannel,privateKey);
+		IChannel channel = new RSAChannel(tcpchannel);
+		((RSAChannel)channel).setKey(privateKey);
 		while(true) {
 			//try {
 				//ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
@@ -75,20 +77,23 @@ public class ProxyImpl implements IProxy, Runnable {
 					output.writeObject(login((LoginRequest)requestObj));
 				}*/
 				try{
-					Request request = channel.receiveMessageRequest();
+					Request request = ((RSAChannel) channel).receiveMessageRequest();
 					if(request instanceof LoginRequest) {
 						//SEND RESPONSE 
 						LoginResponse response = new LoginResponse(Type.OK);
 						response.setClientchallenge(((LoginRequest) request).getChallenge());
-						byte[] secretkey = channel.generateSecretKey();
-						byte[] ivparam = channel.generateSecureIV();
-						byte[] proxychallenge = channel.generateSecureChallenge();
+						byte[] secretkey = ((RSAChannel) channel).generateSecretKey();
+						byte[] ivparam = ((RSAChannel) channel).generateSecureIV();
+						byte[] proxychallenge = ((RSAChannel) channel).generateSecureChallenge();
 						response.setSecretkey(secretkey);
 						response.setIvparameter(ivparam);
 						response.setProxychallenge(proxychallenge);
-						channel.sendMessageResponse(response);
+						((RSAChannel) channel).sendMessageResponse(response);
 						//TODO SWITCH TO AES CHANNEL
 						// init AES Chann with paramterrs 
+						channel = new AESChannel(tcpchannel);
+						((AESChannel)channel).setSecretkey(secretkey);
+						((AESChannel)channel).setIvparam(ivparam);
 						
 						//TODO LOGIN USER SUCCESS
 						// login(request);

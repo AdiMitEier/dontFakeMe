@@ -28,13 +28,17 @@ public class RSAChannel extends Base64Channel{
 
 	private Cipher encrypt;
 	private Cipher decrypt;
-	private Key publickey;
-	
-	public RSAChannel(IChannel base64Channel,Key publickey) {
+	private Key key;
+	public RSAChannel(IChannel base64Channel) {
+		super(base64Channel);
+	}
+	/*public RSAChannel(IChannel base64Channel,Key publickey) {
 		super(base64Channel);
 		this.publickey=publickey;
+	}*/
+	public void setKey(Key key){
+			this.key=key;
 	}
-	
 	//CLIENT
 	// !login <username> <client-challenge> <password>
 	public void sendMessageRequest(Request message) throws IllegalBlockSizeException, BadPaddingException, Exception{
@@ -160,7 +164,7 @@ public class RSAChannel extends Base64Channel{
 		// MODE is the encryption/decryption mode 
 		// KEY is either a private, public or secret key 
 		// IV is an init vector, needed for AES 
-		encrypt.init(Cipher.ENCRYPT_MODE,this.publickey);
+		encrypt.init(Cipher.ENCRYPT_MODE,this.key);
 	}
 	public void initdecryptChipher() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException{
 		this.decrypt = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding"); 
@@ -168,7 +172,7 @@ public class RSAChannel extends Base64Channel{
 		// KEY is either a private, public or secret key 
 		// IV is an init vector, needed for AES 
 		//System.out.println(publickey);
-		decrypt.init(Cipher.DECRYPT_MODE,this.publickey);
+		decrypt.init(Cipher.DECRYPT_MODE,this.key);
 	}
 	//TODO receive Message
 	
