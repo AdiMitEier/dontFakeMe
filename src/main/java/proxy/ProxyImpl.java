@@ -79,6 +79,7 @@ public class ProxyImpl implements IProxy, Runnable {
 				}*/
 				try{
 					Request request = ((RSAChannel) channel).receiveMessageRequest();
+					
 					if((request instanceof LoginRequest)&&(channel instanceof RSAChannel)) {
 						//SEND RESPONSE 
 						LoginResponse response = new LoginResponse(Type.OK);
@@ -90,7 +91,8 @@ public class ProxyImpl implements IProxy, Runnable {
 						response.setIvparameter(ivparam);
 						response.setProxychallenge(proxychallenge);
 						((RSAChannel) channel).sendMessageResponse(response);
-						//TODO SWITCH TO AES CHANNEL
+						
+						// SWITCH TO AES CHANNEL
 						// init AES Chann with paramterrs 
 						channel = new AESChannel(tcpchannel);
 						((AESChannel)channel).setSecretkey(secretkey);
@@ -98,13 +100,14 @@ public class ProxyImpl implements IProxy, Runnable {
 						
 						Request reqmessage=((AESChannel)channel).receiveMessageRequest();
 						byte[] pchal = ((LoginRequest)reqmessage).getChallenge();
+						
 						if(new String(proxychallenge).equals(new String(pchal))){
 							
 							System.out.println("Proxychallenge erhalten juhuu");
+							//LOGIN USER
+							LoginResponse resp = this.login(((LoginRequest)request));
+							//TODO SEND response to user 
 						}
-						
-						//TODO LOGIN USER SUCCESS
-						// login(request);
 					}
 					//else if(request instanceof LoginRequest)&&(channel instanceof AESChannel)){
 						
