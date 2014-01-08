@@ -149,7 +149,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 						if(new String(loginchallenge).equals(challenge)){
 							System.out.println("Response Erhalten & Challenge richtig");
 							
-							//TODO SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
+							//SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
 							byte[] proxychallenge = ((LoginResponse)response).getProxychallenge();
 							byte[] ivparam = ((LoginResponse)response).getIvparameter();
 							byte[] secret = ((LoginResponse)response).getSecretkey();
@@ -157,6 +157,10 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 							channel = new AESChannel(tcpchannel);
 							((AESChannel)channel).setSecretkey(secret);
 							((AESChannel)channel).setIvparam(ivparam);
+							// SENDE PROXY CHALLENGE 
+							LoginRequest loginproxychallenge = new LoginRequest(username,password);
+							loginproxychallenge.setChallenge(proxychallenge);
+							((AESChannel)channel).sendMessageRequest(loginproxychallenge);
 							
 						}
 					}

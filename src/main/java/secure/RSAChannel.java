@@ -34,10 +34,6 @@ public class RSAChannel extends Base64Channel{
 	public RSAChannel(IChannel base64Channel) {
 		super(base64Channel);
 	}
-	/*public RSAChannel(IChannel base64Channel,Key publickey) {
-		super(base64Channel);
-		this.publickey=publickey;
-	}*/
 	public void setKey(Key key){
 			this.key=key;
 	}
@@ -142,17 +138,20 @@ public class RSAChannel extends Base64Channel{
 		
 		return loginrequest;
 	}
-	public Key generateSecretKey() throws NoSuchAlgorithmException{
+	public byte[] generateSecretKey() throws NoSuchAlgorithmException{
 		KeyGenerator generator = KeyGenerator.getInstance("AES"); 
 		// KEYSIZE is in bits 
 		generator.init(256); 
 		SecretKey key = generator.generateKey(); 
-		return key;
+		System.out.println("SECRET KEY "+key.toString());
+		return key.getEncoded();
 	}
 	public byte[] generateSecureIV(){
 		SecureRandom secureRandom = new SecureRandom(); 
 		final byte[] number = new byte[16]; 
 		secureRandom.nextBytes(number);
+		
+		//return secureRandom.generateSeed(16);
 		return number;
 	}
 	public byte[] generateSecureChallenge(){
@@ -160,6 +159,7 @@ public class RSAChannel extends Base64Channel{
 		SecureRandom secureRandom = new SecureRandom(); 
 		final byte[] number = new byte[32]; 
 		secureRandom.nextBytes(number);
+		secureRandom = new SecureRandom(number);
 		return number;
 	}
 	public void initencryptChipher() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException{

@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -78,11 +79,11 @@ public class ProxyImpl implements IProxy, Runnable {
 				}*/
 				try{
 					Request request = ((RSAChannel) channel).receiveMessageRequest();
-					if(request instanceof LoginRequest) {
+					if((request instanceof LoginRequest)&&(channel instanceof RSAChannel)) {
 						//SEND RESPONSE 
 						LoginResponse response = new LoginResponse(Type.OK);
 						response.setClientchallenge(((LoginRequest) request).getChallenge());
-						Key secretkey = ((RSAChannel) channel).generateSecretKey();
+						byte[] secretkey = ((RSAChannel) channel).generateSecretKey();
 						byte[] ivparam = ((RSAChannel) channel).generateSecureIV();
 						byte[] proxychallenge = ((RSAChannel) channel).generateSecureChallenge();
 						response.setSecretkey(secretkey);
@@ -95,9 +96,19 @@ public class ProxyImpl implements IProxy, Runnable {
 						((AESChannel)channel).setSecretkey(secretkey);
 						((AESChannel)channel).setIvparam(ivparam);
 						
+						Request reqmessage=((AESChannel)channel).receiveMessageRequest();
+						byte[] pchal = ((LoginRequest)reqmessage).getChallenge();
+						if(new String(proxychallenge).equals(new String(pchal))){
+							
+							System.out.println("Proxychallenge erhalten juhuu");
+						}
+						
 						//TODO LOGIN USER SUCCESS
 						// login(request);
 					}
+					//else if(request instanceof LoginRequest)&&(channel instanceof AESChannel)){
+						
+					//}
 					else if(request instanceof LogoutRequest) {
 						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 						//output.writeObject(logout());
@@ -142,6 +153,9 @@ public class ProxyImpl implements IProxy, Runnable {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (BadPaddingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvalidAlgorithmParameterException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
