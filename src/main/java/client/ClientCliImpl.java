@@ -13,12 +13,15 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.security.Key;
 import java.security.PublicKey;
 
 import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.openssl.PEMWriter;
 
 import proxy.IProxyRMI;
+import secure.IChannel;
+import secure.RSAChannel;
 import util.Config;
 import util.FileUtils;
 import cli.Command;
@@ -45,6 +48,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	private String loggedInUserName;
 	Registry registry;
 	IProxyRMI proxyRMI;
+	IChannel channel;
 	
 	Socket clientSocket = null;
 	
@@ -79,6 +83,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
 		dir = config.getString("download.dir");
+		keysDir = config.getString("proxy.key");
 	}
 	
 	private void readMCConfig() {
@@ -86,7 +91,6 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		bindingName = mcConfig.getString("binding.name");
 		proxyHost = mcConfig.getString("proxy.host");
 		proxyRMIPort = mcConfig.getInt("proxy.rmi.port");
-		keysDir = mcConfig.getString("keys.dir");
 	}
 	
 	private boolean initRMI() {
@@ -111,11 +115,30 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
 		try {
+			
+			/*PEMReader in = new PEMReader(new FileReader(keysDir)); 
+			PublicKey publicKey = (PublicKey) in.readObject();
+			in.close();
+			
+			clientSocket = new Socket(host,tcpPort);
+			//Socket socket = new Socket(host,tcpPort);
+			channel = new RSAChannel(clientSocket, publicKey);
+			
+			
+			try {
+				channel.sendMessageRequest(new LoginRequest(username, password));
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}*/
+			
+			
 			clientSocket = new Socket(host,tcpPort);
 			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
 			output.writeObject(new LoginRequest(username, password));
 			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			try {
+				//Response res = channel.receiveMessageResponse();
+				//LoginResponse response = (LoginResponse)res;
 				LoginResponse response = (LoginResponse)input.readObject();
 				if(response.getType() == Type.WRONG_CREDENTIALS) {
 					clientSocket.close();
@@ -125,9 +148,10 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new LoginResponse(Type.WRONG_CREDENTIALS);
-			}
+			} 
 		} catch(IOException e) {
 			System.out.println("Connection error");
+			e.printStackTrace();
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
 	}

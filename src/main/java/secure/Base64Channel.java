@@ -12,42 +12,23 @@ import message.Response;
 import org.bouncycastle.util.encoders.Base64;
 
 public abstract class Base64Channel implements IChannel {
-	protected IChannel base64Channel; //decorated
-	
-	private Socket tcpchannelsocket;
-	private ObjectOutputStream output;
-	private ObjectInputStream input;
+	protected IChannel tcpChannel; //decorated
 	
 	public Base64Channel(IChannel base64Channel){
-		this.base64Channel = base64Channel;
+		this.tcpChannel = base64Channel;
 	}
-	
-	public Base64Channel(Socket s) throws IOException{
-		this.tcpchannelsocket = s;
-		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
-		this.input =  new ObjectInputStream(tcpchannelsocket.getInputStream());
+	public void sendByteArray(byte[] array) throws IOException {
+		byte[] encoded = this.encodeBase64(array);
+		tcpChannel.sendByteArray(encoded);
 	}
-	@Override
-	public void sendMessage(Request message) throws Exception {
-		byte[] messagearray = this.encodeBase64(this.toByteArray(message));
-		this.output = new ObjectOutputStream(tcpchannelsocket.getOutputStream());
-		this.output.writeObject(messagearray);
-	}
-
-	@Override
-	public Response receiveMessage() throws Exception {
-		this.input = new ObjectInputStream(tcpchannelsocket.getInputStream());
-		byte[] messagearray = (byte[]) input.readObject();
-		messagearray = this.decodeBase64(messagearray);
-		return (Response)this.byteArraytoObject(messagearray);
+	public byte[] receiveByteArray() throws ClassNotFoundException, IOException{
+		byte[] rec = tcpChannel.receiveByteArray();
+		return this.decodeBase64(rec);
 	}
 
 	@Override
 	public void closeChannel() throws Exception {
-		this.input.close();
-		this.output.close();
-		if(tcpchannelsocket != null) tcpchannelsocket.close();
-		
+		tcpChannel.closeChannel();	
 	}
 	/**
 	 * Writes the given Object to a byte array
