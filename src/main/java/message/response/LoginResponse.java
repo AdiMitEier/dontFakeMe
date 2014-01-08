@@ -47,6 +47,8 @@ public class LoginResponse implements Response {
 	@Override
 	public String toString() {
 		return "!login " + getType().name().toLowerCase();
+		//!ok <client-challenge> <proxy-challenge> <secret-key> <iv-parameter>
+		//return "!ok "+ new String(message);
 	}
 
 	public void setClientchallenge(byte[] clientchallenge) {

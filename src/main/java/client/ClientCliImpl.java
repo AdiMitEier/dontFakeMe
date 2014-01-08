@@ -133,7 +133,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				Response response = channel.receiveMessageResponse();
 				if(response instanceof LoginResponse){
 					response = (LoginResponse)response;
-					System.out.println(response.toString());
+					System.out.println("Response:"+response.toString()+" "+new String(((LoginResponse)response).getClientchallenge()));
 				}
 			} catch (Exception e1) {
 				e1.printStackTrace();

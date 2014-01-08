@@ -78,10 +78,11 @@ public class ProxyImpl implements IProxy, Runnable {
 					Request request = channel.receiveMessageRequest();
 					if(request instanceof LoginRequest) {
 						//request = (LoginRequest)request;
-						System.out.println((request).toString()+" "+((LoginRequest)request).getChallenge());
+						System.out.println((request).toString()+" "+new String(((LoginRequest)request).getChallenge()));
 						//TODO SEND RESPONSE 
-						LoginResponse response = new LoginResponse(Type.OK);
+						LoginResponse response = new LoginResponse(Type.WRONG_CREDENTIALS);
 						response.setClientchallenge(((LoginRequest) request).getChallenge());
+						//response.setMessage(((LoginRequest) request).getChallenge());
 						// TODO 
 						channel.sendMessageResponse(response);
 						//TODO SWITCH TO AES CHANNEL
