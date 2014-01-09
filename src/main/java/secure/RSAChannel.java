@@ -39,7 +39,7 @@ public class RSAChannel extends Base64Channel{
 	}
 	//CLIENT
 	// !login <username> <client-challenge> <password>
-	public void sendMessageRequest(Request message) throws IllegalBlockSizeException, BadPaddingException, Exception{
+	public void sendMessageRequest(Request message) throws IllegalBlockSizeException, BadPaddingException, IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException{
 		if(message instanceof LoginRequest){
 		byte[] encode = this.encodeBase64(((LoginRequest) message).getChallenge());
 		String m = "!login "+((LoginRequest) message).getUsername()+ " " +new String(encode)+ " "+((LoginRequest) message).getPassword();

@@ -73,30 +73,37 @@ public class AESChannel extends Base64Channel{
 	//CLIENT
 	public void sendMessageRequest(Request message) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException{
 		if(message instanceof LoginRequest){
-			((LoginRequest)message).setChallenge(this.encodeBase64(((LoginRequest)message).getChallenge()));
+			//((LoginRequest)message).setChallenge(this.encodeBase64(((LoginRequest)message).getChallenge()));
 		}else{
 			
 		}
 		byte[]array = this.toByteArray(message);
 		this.initencryptChipher();
-		byte[] rsa = encrypt.doFinal(array);
-		this.sendByteArray(rsa);
+		byte[] aes = encrypt.doFinal(array);
+		this.sendByteArray(aes);
 	}
-	public Response receiveMessageResponse(){
-		//TODO
-		return null;
+	public Response receiveMessageResponse() throws IOException, ClassNotFoundException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException{
+		byte[]rec =this.receiveByteArray();
+		this.initdecryptChipher();
+		byte[]aes=this.decrypt.doFinal(rec);
+		Response response = (Response)this.byteArraytoObject(aes);
+		
+		return response;
 	}
 	//PROXY
-	public void sendMessageResponse(Response message){
-		//TODO
+	public void sendMessageResponse(Response message) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException{
+		byte[]array = this.toByteArray(message);
+		this.initencryptChipher();
+		byte[] aes = encrypt.doFinal(array);
+		this.sendByteArray(aes);
 	}
 	public Request receiveMessageRequest() throws ClassNotFoundException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException{
 		byte[]rec =this.receiveByteArray();
 		this.initdecryptChipher();
-		byte[]rsa=this.decrypt.doFinal(rec);
-		Request request = (Request)this.byteArraytoObject(rsa);
+		byte[]aes=this.decrypt.doFinal(rec);
+		Request request = (Request)this.byteArraytoObject(aes);
 		if(request instanceof LoginRequest){
-			((LoginRequest) request).setChallenge(this.decodeBase64(((LoginRequest) request).getChallenge()));
+			//((LoginRequest) request).setChallenge(this.decodeBase64(((LoginRequest) request).getChallenge()));
 		}
 		return request;
 	}

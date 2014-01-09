@@ -29,7 +29,7 @@ public class TCPChannel implements IChannel {
 		return array;
 	}
 	@Override
-	public void closeChannel() throws Exception {
+	public void closeChannel() throws IOException{
 		this.input.close();
 		this.output.close();
 		if(tcpchannelsocket != null) tcpchannelsocket.close();
