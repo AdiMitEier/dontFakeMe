@@ -34,9 +34,10 @@ public abstract class Base64Channel implements IChannel {
 	 * Writes the given Object to a byte array
 	 * @param Object o
 	 * @return byte[]
+	 * @throws IOException 
 	 * @throws Exception
 	 */
-	public byte[] toByteArray(Object o) throws Exception {
+	public byte[] toByteArray(Object o) throws IOException{
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(baos);
 		oos.writeObject(o);
@@ -48,9 +49,11 @@ public abstract class Base64Channel implements IChannel {
 	 * Writes the given byte Array to Object
 	 * @param byte[] code
 	 * @return Object
+	 * @throws IOException 
+	 * @throws ClassNotFoundException 
 	 * @throws Exception
 	 */
-	public Object byteArraytoObject(byte[] code) throws Exception{
+	public Object byteArraytoObject(byte[] code) throws IOException, ClassNotFoundException{
 		ByteArrayInputStream in = new ByteArrayInputStream(code);
 		ObjectInputStream oin = new ObjectInputStream(in);
 		return oin.readObject();
