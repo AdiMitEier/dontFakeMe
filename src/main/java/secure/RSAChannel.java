@@ -143,7 +143,7 @@ public class RSAChannel extends Base64Channel{
 		// KEYSIZE is in bits 
 		generator.init(256); 
 		SecretKey key = generator.generateKey(); 
-		System.out.println("SECRET KEY "+key.toString());
+		//System.out.println("SECRET KEY "+key.toString());
 		return key.getEncoded();
 	}
 	public byte[] generateSecureIV(){

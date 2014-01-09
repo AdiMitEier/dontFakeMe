@@ -47,7 +47,7 @@ public class AESChannel extends Base64Channel{
 		// (see text) 
 		Key key = new SecretKeySpec(secretkey,"AES");
 		this.secretkey=key;
-		System.out.println("SECRET KEY AES"+key.toString());
+		//System.out.println("SECRET KEY AES"+key.toString());
 	}
 	public void initencryptChipher() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException{
 		//"AES/CTR/NoPadding"

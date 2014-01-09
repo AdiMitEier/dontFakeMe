@@ -99,7 +99,7 @@ public class ProxyImpl implements IProxy, Runnable {
 				
 				if(new String(proxychallenge).equals(new String(pchal))){
 					
-					System.out.println("Proxychallenge erhalten juhuu");
+					//System.out.println("Proxychallenge erhalten juhuu");
 					//LOGIN USER
 					LoginResponse resp = this.login(((LoginRequest)request));
 					((AESChannel)channel).sendMessageResponse(resp);
@@ -228,40 +228,6 @@ public class ProxyImpl implements IProxy, Runnable {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
-				
-				/*
-				else if(requestObj instanceof LogoutRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(logout());
-				}
-				else if(requestObj instanceof CreditsRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(credits());
-				}
-				else if(requestObj instanceof BuyRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(buy((BuyRequest)requestObj));
-				}
-				else if(requestObj instanceof ListRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(list());
-				}
-				else if(requestObj instanceof UploadRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(upload((UploadRequest)requestObj));
-				}
-				else if(requestObj instanceof DownloadTicketRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(download((DownloadTicketRequest)requestObj));
-				}*/
-			/*} catch (ClassNotFoundException e) {
-				System.out.println("ClassNotFoundException, really?");
-			} catch (IOException e) {
-				if(currentUser != null) currentUser.setOnline(false);
-				//System.out.println("Shut down client proxy instance");
-				return;
-			}*/
 		}
 	}
 

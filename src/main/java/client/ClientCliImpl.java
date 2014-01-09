@@ -70,7 +70,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	}
 	
 	public ClientCliImpl(Config config, Shell shell) {
-		System.out.println("Starting client");
+		//System.out.println("Starting client");
 		this.config = config;
 		this.shell = shell;
 		readConfig();
@@ -94,10 +94,8 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
 		dir = config.getString("download.dir");
-<<<<<<< HEAD
-=======
 		publicKeyDir = config.getString("proxy.key");
->>>>>>> stage2
+
 	}
 	
 	private void readMCConfig() {
@@ -126,7 +124,6 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	@Command
 	public LoginResponse login(String username, String password) throws IOException{
 		if(clientSocket != null && !clientSocket.isClosed()) {
-			System.out.println("You are already logged in!");
 			shell.writeLine("You are already logged in!");
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
@@ -162,56 +159,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 						String challenge = new String(((LoginResponse)response).getClientchallenge());
 						if(new String(loginchallenge).equals(challenge))
 						{
-							System.out.println("Response Erhalten & Challenge richtig");
-							
-							//SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
-							byte[] proxychallenge = ((LoginResponse)response).getProxychallenge();
-							byte[] ivparam = ((LoginResponse)response).getIvparameter();
-							byte[] secret = ((LoginResponse)response).getSecretkey();
-							//AES CHANNEL
-							channel = new AESChannel(tcpchannel);
-							((AESChannel)channel).setSecretkey(secret);
-							((AESChannel)channel).setIvparam(ivparam);
-							// SENDE PROXY CHALLENGE 
-							LoginRequest loginproxychallenge = new LoginRequest(username,password);
-							loginproxychallenge.setChallenge(proxychallenge);
-							((AESChannel)channel).sendMessageRequest(loginproxychallenge);
-							
-							/*Response reslogin=((AESChannel)channel).receiveMessageResponse();
-							if(reslogin  instanceof LoginResponse){
-								if(((LoginResponse) reslogin).getType()==LoginResponse.Type.SUCCESS){
-									System.out.println("succes fully logged in ");
-								}
-							}*/
-							
-							//EMPFANGE LOGIN RESPONSE 
-							Response res = ((AESChannel)channel).receiveMessageResponse();
-							LoginResponse responsex = (LoginResponse)res;
-							
-							if(responsex.getType() == Type.WRONG_CREDENTIALS)
-							{
-								clientSocket.close();
-=======
-			//try {
-				//LOGIN REQEUST ERSTELLEN MIT CHALLENGE NUMBER
-				LoginRequest loginreq=new LoginRequest(username, password);
-				byte[] loginchallenge = ((RSAChannel) channel).generateSecureChallenge();
-				loginreq.setChallenge(loginchallenge);
-				
-				//SENDE LOGIN REQUEST
-				((RSAChannel) channel).sendMessageRequest(loginreq);
-				
-				//EMPFANGE RESPONSE
-				Response response = ((RSAChannel) channel).receiveMessageResponse();
-				if(response instanceof LoginResponse)
-				{
-					response = (LoginResponse)response;
-					if(((LoginResponse) response).getType()==LoginResponse.Type.OK)
-					{
-						String challenge = new String(((LoginResponse)response).getClientchallenge());
-						if(new String(loginchallenge).equals(challenge))
-						{
-							System.out.println("Response Erhalten & Challenge richtig");
+							//System.out.println("Response Erhalten & Challenge richtig");
 							
 							//SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
 							byte[] proxychallenge = ((LoginResponse)response).getProxychallenge();
@@ -268,7 +216,6 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			e.printStackTrace();
 		} catch (InvalidAlgorithmParameterException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
