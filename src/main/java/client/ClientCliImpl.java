@@ -83,7 +83,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
 		dir = config.getString("download.dir");
-		keysDir = config.getString("proxy.key");
+		keysDir = config.getString("keys.dir");
 	}
 	
 	private void readMCConfig() {
