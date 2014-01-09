@@ -174,13 +174,6 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 							loginproxychallenge.setChallenge(proxychallenge);
 							((AESChannel)channel).sendMessageRequest(loginproxychallenge);
 							
-							/*Response reslogin=((AESChannel)channel).receiveMessageResponse();
-							if(reslogin  instanceof LoginResponse){
-								if(((LoginResponse) reslogin).getType()==LoginResponse.Type.SUCCESS){
-									System.out.println("succes fully logged in ");
-								}
-							}*/
-							
 							//EMPFANGE LOGIN RESPONSE 
 							Response res = ((AESChannel)channel).receiveMessageResponse();
 							LoginResponse responsex = (LoginResponse)res;
@@ -200,68 +193,36 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				e.printStackTrace();
 				return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Security issue");
 			e.printStackTrace();
+			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
 		
 		return new LoginResponse(Type.WRONG_CREDENTIALS);
-		/*	
-		try {
-				//EMPFANGE LOGIN RESPONSE 
-				Response res;
-				try {
-					res = ((AESChannel)channel).receiveMessageResponse();
-					LoginResponse responsefinal = (LoginResponse)res;
-
-					if(responsefinal.getType() == Type.WRONG_CREDENTIALS) {
-						clientSocket.close();
-					}
-					loggedInUserName = username;
-					return responsefinal;
-				} catch (InvalidKeyException e) {
-					e.printStackTrace();
-				} catch (IllegalBlockSizeException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (BadPaddingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (NoSuchAlgorithmException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (NoSuchPaddingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InvalidAlgorithmParameterException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-		} catch(IOException e) {
-			System.out.println("Connection error");
-			e.printStackTrace();
-			return new LoginResponse(Type.WRONG_CREDENTIALS);
-		} */
 	}
 
 	@Override
@@ -279,46 +240,34 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
 			} catch (InvalidKeyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (IllegalBlockSizeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (BadPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (InvalidAlgorithmParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		}
-		return new MessageResponse("Unexpected communication error appeared");
+		
 	}
 
 	@Override
@@ -337,46 +286,34 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
 			} catch (InvalidKeyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (IllegalBlockSizeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (BadPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (InvalidAlgorithmParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		}
-		return new MessageResponse("Unexpected communication error appeared");
+		
 	}
 
 	@Override
@@ -397,46 +334,33 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
 			} catch (InvalidKeyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (IllegalBlockSizeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (BadPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (InvalidAlgorithmParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		}
-		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -491,46 +415,33 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
 			} catch (InvalidKeyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (IllegalBlockSizeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (BadPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (InvalidAlgorithmParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		}
-		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -557,46 +468,33 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
 			} catch (InvalidKeyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (IllegalBlockSizeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (BadPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (InvalidAlgorithmParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		}
-		return new MessageResponse("Connection error");
 	}
 
 	@Override
@@ -621,46 +519,33 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
 			} catch (InvalidKeyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (IllegalBlockSizeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (BadPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (NoSuchPaddingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			} catch (InvalidAlgorithmParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				return new MessageResponse("Unexpected security error appeared");
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new MessageResponse("Unexpected security error appeared");
 		}
-		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override

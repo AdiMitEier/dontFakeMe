@@ -114,23 +114,23 @@ public class ProxyImpl implements IProxy, Runnable {
 			System.out.println("Shut down client proxy instance");
 			return;
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unexpected security error appeared");
+			return;
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unexpected security error appeared");
+			return;
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unexpected security error appeared");
+			return;
 		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unexpected security error appeared");
+			return;
 		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unexpected security error appeared");
+			return;
 		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unexpected security error appeared");
+			return;
 		}
 		
 		while(true) {
@@ -210,23 +210,23 @@ public class ProxyImpl implements IProxy, Runnable {
 					System.out.println("Shut down client proxy instance");
 					return;
 				} catch (InvalidKeyException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Unexpected security error appeared");
+					return;
 				} catch (NoSuchAlgorithmException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Unexpected security error appeared");
+					return;
 				} catch (NoSuchPaddingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Unexpected security error appeared");
+					return;
 				} catch (IllegalBlockSizeException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Unexpected security error appeared");
+					return;
 				} catch (BadPaddingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Unexpected security error appeared");
+					return;
 				} catch (InvalidAlgorithmParameterException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Unexpected security error appeared");
+					return;
 				}
 		}
 	}
