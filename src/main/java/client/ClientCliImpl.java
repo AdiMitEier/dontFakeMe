@@ -13,13 +13,22 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.openssl.PEMWriter;
+import secure.TCPChannel;
 
 import proxy.IProxyRMI;
+import secure.AESChannel;
 import secure.IChannel;
 import secure.RSAChannel;
 import util.Config;
@@ -45,10 +54,12 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	private String proxyHost;
 	private int proxyRMIPort;
 	private String keysDir;
+	private String publicKeyDir;
 	private String loggedInUserName;
 	Registry registry;
 	IProxyRMI proxyRMI;
 	IChannel channel;
+	IChannel tcpchannel;
 	
 	Socket clientSocket = null;
 	
@@ -59,7 +70,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	}
 	
 	public ClientCliImpl(Config config, Shell shell) {
-		//System.out.println("Starting client");
+		System.out.println("Starting client");
 		this.config = config;
 		this.shell = shell;
 		readConfig();
@@ -83,7 +94,10 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		tcpPort = config.getInt("proxy.tcp.port");
 		host = config.getString("proxy.host");
 		dir = config.getString("download.dir");
-		keysDir = config.getString("keys.dir");
+<<<<<<< HEAD
+=======
+		publicKeyDir = config.getString("proxy.key");
+>>>>>>> stage2
 	}
 	
 	private void readMCConfig() {
@@ -91,6 +105,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		bindingName = mcConfig.getString("binding.name");
 		proxyHost = mcConfig.getString("proxy.host");
 		proxyRMIPort = mcConfig.getInt("proxy.rmi.port");
+		keysDir = mcConfig.getString("keys.dir");
 	}
 	
 	private boolean initRMI() {
@@ -109,51 +124,197 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	
 	@Override
 	@Command
-	public LoginResponse login(String username, String password) throws IOException {
+	public LoginResponse login(String username, String password) throws IOException{
 		if(clientSocket != null && !clientSocket.isClosed()) {
+			System.out.println("You are already logged in!");
 			shell.writeLine("You are already logged in!");
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
 		}
 		try {
 			
-			/*PEMReader in = new PEMReader(new FileReader(keysDir)); 
+			PEMReader in = new PEMReader(new FileReader(publicKeyDir)); 
 			PublicKey publicKey = (PublicKey) in.readObject();
 			in.close();
 			
 			clientSocket = new Socket(host,tcpPort);
 			//Socket socket = new Socket(host,tcpPort);
-			channel = new RSAChannel(clientSocket, publicKey);
+			this.tcpchannel = new TCPChannel(clientSocket);
+			//RSAChannel channel = new RSAChannel(tcpchannel,publicKey);
+			this.channel = new RSAChannel(tcpchannel);
+			((RSAChannel)channel).setKey(publicKey);
 			
-			
-			try {
-				channel.sendMessageRequest(new LoginRequest(username, password));
-			} catch (Exception e1) {
-				e1.printStackTrace();
-			}*/
-			
-			
-			clientSocket = new Socket(host,tcpPort);
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new LoginRequest(username, password));
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
-			try {
-				//Response res = channel.receiveMessageResponse();
-				//LoginResponse response = (LoginResponse)res;
-				LoginResponse response = (LoginResponse)input.readObject();
-				if(response.getType() == Type.WRONG_CREDENTIALS) {
-					clientSocket.close();
+			//try {
+				//LOGIN REQEUST ERSTELLEN MIT CHALLENGE NUMBER
+				LoginRequest loginreq=new LoginRequest(username, password);
+				byte[] loginchallenge = ((RSAChannel) channel).generateSecureChallenge();
+				loginreq.setChallenge(loginchallenge);
+				
+				//SENDE LOGIN REQUEST
+				((RSAChannel) channel).sendMessageRequest(loginreq);
+				
+				//EMPFANGE RESPONSE
+				Response response = ((RSAChannel) channel).receiveMessageResponse();
+				if(response instanceof LoginResponse)
+				{
+					response = (LoginResponse)response;
+					if(((LoginResponse) response).getType()==LoginResponse.Type.OK)
+					{
+						String challenge = new String(((LoginResponse)response).getClientchallenge());
+						if(new String(loginchallenge).equals(challenge))
+						{
+							System.out.println("Response Erhalten & Challenge richtig");
+							
+							//SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
+							byte[] proxychallenge = ((LoginResponse)response).getProxychallenge();
+							byte[] ivparam = ((LoginResponse)response).getIvparameter();
+							byte[] secret = ((LoginResponse)response).getSecretkey();
+							//AES CHANNEL
+							channel = new AESChannel(tcpchannel);
+							((AESChannel)channel).setSecretkey(secret);
+							((AESChannel)channel).setIvparam(ivparam);
+							// SENDE PROXY CHALLENGE 
+							LoginRequest loginproxychallenge = new LoginRequest(username,password);
+							loginproxychallenge.setChallenge(proxychallenge);
+							((AESChannel)channel).sendMessageRequest(loginproxychallenge);
+							
+							/*Response reslogin=((AESChannel)channel).receiveMessageResponse();
+							if(reslogin  instanceof LoginResponse){
+								if(((LoginResponse) reslogin).getType()==LoginResponse.Type.SUCCESS){
+									System.out.println("succes fully logged in ");
+								}
+							}*/
+							
+							//EMPFANGE LOGIN RESPONSE 
+							Response res = ((AESChannel)channel).receiveMessageResponse();
+							LoginResponse responsex = (LoginResponse)res;
+							
+							if(responsex.getType() == Type.WRONG_CREDENTIALS)
+							{
+								clientSocket.close();
+=======
+			//try {
+				//LOGIN REQEUST ERSTELLEN MIT CHALLENGE NUMBER
+				LoginRequest loginreq=new LoginRequest(username, password);
+				byte[] loginchallenge = ((RSAChannel) channel).generateSecureChallenge();
+				loginreq.setChallenge(loginchallenge);
+				
+				//SENDE LOGIN REQUEST
+				((RSAChannel) channel).sendMessageRequest(loginreq);
+				
+				//EMPFANGE RESPONSE
+				Response response = ((RSAChannel) channel).receiveMessageResponse();
+				if(response instanceof LoginResponse)
+				{
+					response = (LoginResponse)response;
+					if(((LoginResponse) response).getType()==LoginResponse.Type.OK)
+					{
+						String challenge = new String(((LoginResponse)response).getClientchallenge());
+						if(new String(loginchallenge).equals(challenge))
+						{
+							System.out.println("Response Erhalten & Challenge richtig");
+							
+							//SWITCH TO AES CHANNEL & SEND PROXY CHALLENGE BACK
+							byte[] proxychallenge = ((LoginResponse)response).getProxychallenge();
+							byte[] ivparam = ((LoginResponse)response).getIvparameter();
+							byte[] secret = ((LoginResponse)response).getSecretkey();
+							//AES CHANNEL
+							channel = new AESChannel(tcpchannel);
+							((AESChannel)channel).setSecretkey(secret);
+							((AESChannel)channel).setIvparam(ivparam);
+							// SENDE PROXY CHALLENGE 
+							LoginRequest loginproxychallenge = new LoginRequest(username,password);
+							loginproxychallenge.setChallenge(proxychallenge);
+							((AESChannel)channel).sendMessageRequest(loginproxychallenge);
+							
+							/*Response reslogin=((AESChannel)channel).receiveMessageResponse();
+							if(reslogin  instanceof LoginResponse){
+								if(((LoginResponse) reslogin).getType()==LoginResponse.Type.SUCCESS){
+									System.out.println("succes fully logged in ");
+								}
+							}*/
+							
+							//EMPFANGE LOGIN RESPONSE 
+							Response res = ((AESChannel)channel).receiveMessageResponse();
+							LoginResponse responsex = (LoginResponse)res;
+							
+							if(responsex.getType() == Type.WRONG_CREDENTIALS)
+							{
+								clientSocket.close();
+							}
+							loggedInUserName = username;
+							return responsex;
+						}
 				}
-				loggedInUserName = username;
-				return response;
-			} catch (ClassNotFoundException e) {
-				System.out.println("ClassNotFoundException, really?");
+			}
+			
+		}catch(IOException e) {
+				System.out.println("Connection error");
+				e.printStackTrace();
 				return new LoginResponse(Type.WRONG_CREDENTIALS);
-			} 
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return new LoginResponse(Type.WRONG_CREDENTIALS);
+		/*	
+		try {
+				//EMPFANGE LOGIN RESPONSE 
+				Response res;
+				try {
+					res = ((AESChannel)channel).receiveMessageResponse();
+					LoginResponse responsefinal = (LoginResponse)res;
+
+					if(responsefinal.getType() == Type.WRONG_CREDENTIALS) {
+						clientSocket.close();
+					}
+					loggedInUserName = username;
+					return responsefinal;
+				} catch (InvalidKeyException e) {
+					e.printStackTrace();
+				} catch (IllegalBlockSizeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (BadPaddingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchAlgorithmException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchPaddingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvalidAlgorithmParameterException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		} catch(IOException e) {
 			System.out.println("Connection error");
 			e.printStackTrace();
 			return new LoginResponse(Type.WRONG_CREDENTIALS);
-		}
+		} */
 	}
 
 	@Override
@@ -161,18 +322,56 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	public Response credits() throws IOException {
 		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
 		try {
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new CreditsRequest());
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(new CreditsRequest());
+			//ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			((AESChannel)channel).sendMessageRequest(new CreditsRequest());
 			try {
-				return (Response)input.readObject();
+				return (Response)((AESChannel)channel).receiveMessageResponse();
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -180,18 +379,57 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	public Response buy(long credits) throws IOException {
 		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
 		try {
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new BuyRequest(credits));
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(new BuyRequest(credits));
+			//ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			((AESChannel)channel).sendMessageRequest(new BuyRequest(credits));
 			try {
-				return (Response)input.readObject();
+				return (Response) ((AESChannel)channel).receiveMessageResponse();
+				//return (Response)input.readObject();
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -200,18 +438,58 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
 		try {
 			ListRequest request = new ListRequest();
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(request);
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(request);
+			((AESChannel) channel).sendMessageRequest(request);
+			
+			//ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
 			try {
-				return (Response)input.readObject();
+				return (Response)((AESChannel) channel).receiveMessageResponse();
+				//return (Response)input.readObject();
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -219,11 +497,15 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	public Response download(String filename) throws IOException {
 		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
 		try {
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new DownloadTicketRequest(filename));
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(new DownloadTicketRequest(filename));
+			//ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			((AESChannel) channel).sendMessageRequest(new DownloadTicketRequest(filename));
+			
 			try {
-				Object responseObj = input.readObject();
+				//Object responseObj = input.readObject();
+				Response responseObj=((AESChannel) channel).receiveMessageResponse();
+				
 				if(responseObj instanceof DownloadTicketResponse) {
 					DownloadTicketResponse response = (DownloadTicketResponse)responseObj;
 					DownloadTicket ticket = response.getTicket();
@@ -261,10 +543,47 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -274,11 +593,14 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 		byte[] data = FileUtils.readFile(dir,filename);
 		if(data == null) return new MessageResponse("Cannot read file");
 		try {
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new UploadRequest(filename, 0, data));
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(new UploadRequest(filename, 0, data));
+			//ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//TODO
+			((AESChannel) channel).sendMessageRequest(new UploadRequest(filename, 0, data));
 			try {
-				Object responseObj = input.readObject();
+				//Object responseObj = input.readObject();
+				Response responseObj = ((AESChannel) channel).receiveMessageResponse();
 				if(responseObj instanceof MessageResponse) {
 					return (MessageResponse)responseObj;
 				} else {
@@ -287,10 +609,47 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return new MessageResponse("Connection error");
 	}
 
 	@Override
@@ -298,11 +657,13 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 	public MessageResponse logout() throws IOException {
 		if(clientSocket == null) return new MessageResponse("Please login to perform this action");
 		try {
-			ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
-			output.writeObject(new LogoutRequest());
-			ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream());
+			//output.writeObject(new LogoutRequest());
+			//ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
+			((AESChannel)channel).sendMessageRequest(new LogoutRequest());
 			try {
-				Object responseObj = input.readObject();
+				//Object responseObj = input.readObject();
+				Response responseObj =((AESChannel)channel).receiveMessageResponse();
 				if(responseObj instanceof MessageResponse) {
 					clientSocket.close();
 					return (MessageResponse)responseObj;
@@ -312,10 +673,47 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 			} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 				return new MessageResponse("Unexpected communication error appeared");
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvalidAlgorithmParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		} catch(IOException e) {
 			return new MessageResponse("Connection error");
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return new MessageResponse("Unexpected communication error appeared");
 	}
 
 	@Override
@@ -348,6 +746,7 @@ public class ClientCliImpl implements IClientCli, IClientRMI {
 
 	@Override
 	public void notifySubscription(String file, int number) throws RemoteException {
+		System.out.println("Notification: "+file+" got downloaded "+number+" times!.");
 		try {
 			shell.writeLine("Notification: "+file+" got downloaded "+number+" times!.");
 		} catch (IOException e) {

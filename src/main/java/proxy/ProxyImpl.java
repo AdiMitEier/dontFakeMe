@@ -1,17 +1,35 @@
 package proxy;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.util.encoders.Hex;
 
+import secure.AESChannel;
+import secure.IChannel;
+import secure.RSAChannel;
+import secure.TCPChannel;
 import util.ChecksumUtils;
+import message.Request;
 import message.Response;
 import message.request.*;
 import message.response.*;
@@ -21,28 +39,198 @@ import model.FileModel;
 import model.FileServerModel;
 import model.UserModel;
 
+import java.security.KeyPair; 
+import java.security.PrivateKey; 
+
+import org.bouncycastle.openssl.PEMReader; 
+import org.bouncycastle.openssl.PasswordFinder;
+
 public class ProxyImpl implements IProxy, Runnable {
 	
 	private Socket socket;
 	ProxyCliImpl proxyCli;
 	UserModel currentUser = null;
+	Key privateKey;
 	
 	public ProxyImpl(Socket socket, ProxyCliImpl proxyCli) {
 		this.socket = socket;
 		this.proxyCli = proxyCli;
-		
+
+		privateKey = proxyCli.getPrivateKey();
 	}
 	
 	@Override
 	public void run() {
-		while(true) {
-			try {
-				ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-				Object requestObj = input.readObject();
-				if(requestObj instanceof LoginRequest) {
-					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
-					output.writeObject(login((LoginRequest)requestObj));
+		IChannel tcpchannel = null;
+		try{
+		tcpchannel = new TCPChannel(socket);
+		} catch(IOException e){
+			e.printStackTrace();
+		}
+		IChannel channel = new RSAChannel(tcpchannel);
+		((RSAChannel)channel).setKey(privateKey);
+		//
+		// RSA VERFAHREN 
+		//
+		Request request = null;
+		try{
+			request = ((RSAChannel) channel).receiveMessageRequest();
+			
+			if((request instanceof LoginRequest)&&(channel instanceof RSAChannel)) {
+				//SEND RESPONSE 
+				LoginResponse response = new LoginResponse(Type.OK);
+				response.setClientchallenge(((LoginRequest) request).getChallenge());
+				byte[] secretkey = ((RSAChannel) channel).generateSecretKey();
+				byte[] ivparam = ((RSAChannel) channel).generateSecureIV();
+				byte[] proxychallenge = ((RSAChannel) channel).generateSecureChallenge();
+				response.setSecretkey(secretkey);
+				response.setIvparameter(ivparam);
+				response.setProxychallenge(proxychallenge);
+				((RSAChannel) channel).sendMessageResponse(response);
+				
+				// SWITCH TO AES CHANNEL
+				// init AES Chann with paramterrs 
+				channel = new AESChannel(tcpchannel);
+				((AESChannel)channel).setSecretkey(secretkey);
+				((AESChannel)channel).setIvparam(ivparam);
+				
+				Request reqmessage=((AESChannel)channel).receiveMessageRequest();
+				byte[] pchal = ((LoginRequest)reqmessage).getChallenge();
+				
+				if(new String(proxychallenge).equals(new String(pchal))){
+					
+					System.out.println("Proxychallenge erhalten juhuu");
+					//LOGIN USER
+					LoginResponse resp = this.login(((LoginRequest)request));
+					((AESChannel)channel).sendMessageResponse(resp);
+					 
 				}
+			}
+		} catch (ClassNotFoundException e) {
+			System.out.println("ClassNotFoundException, really?");
+			e.printStackTrace();
+		} catch (IOException e) {
+			if(currentUser != null) currentUser.setOnline(false);
+			System.out.println("Shut down client proxy instance");
+			return;
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		while(true) {
+			
+				try{
+					request = ((AESChannel) channel).receiveMessageRequest();
+					
+					/*if((request instanceof LoginRequest)&&(channel instanceof RSAChannel)) {
+						//SEND RESPONSE 
+						LoginResponse response = new LoginResponse(Type.OK);
+						response.setClientchallenge(((LoginRequest) request).getChallenge());
+						byte[] secretkey = ((RSAChannel) channel).generateSecretKey();
+						byte[] ivparam = ((RSAChannel) channel).generateSecureIV();
+						byte[] proxychallenge = ((RSAChannel) channel).generateSecureChallenge();
+						response.setSecretkey(secretkey);
+						response.setIvparameter(ivparam);
+						response.setProxychallenge(proxychallenge);
+						((RSAChannel) channel).sendMessageResponse(response);
+						
+						// SWITCH TO AES CHANNEL
+						// init AES Chann with paramterrs 
+						channel = new AESChannel(tcpchannel);
+						((AESChannel)channel).setSecretkey(secretkey);
+						((AESChannel)channel).setIvparam(ivparam);
+						
+						Request reqmessage=((AESChannel)channel).receiveMessageRequest();
+						byte[] pchal = ((LoginRequest)reqmessage).getChallenge();
+						
+						if(new String(proxychallenge).equals(new String(pchal))){
+							
+							System.out.println("Proxychallenge erhalten juhuu");
+							//LOGIN USER
+							LoginResponse resp = this.login(((LoginRequest)request));
+							((AESChannel)channel).sendMessageResponse(resp);
+							 
+						}
+					}*/
+					if(request instanceof LoginRequest){
+						//TODO 
+					}
+					else if(request instanceof LogoutRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(logout());
+						((AESChannel) channel).sendMessageResponse(logout());
+					}
+					else if(request instanceof CreditsRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(credits());
+						((AESChannel) channel).sendMessageResponse(credits());
+					}
+					else if(request instanceof BuyRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(buy((BuyRequest)requestObj));
+						((AESChannel) channel).sendMessageResponse(buy((BuyRequest)request));
+					}
+					else if(request instanceof ListRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(list());
+						((AESChannel) channel).sendMessageResponse(list());
+					}
+					else if(request instanceof UploadRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(upload((UploadRequest)requestObj));
+						((AESChannel) channel).sendMessageResponse(upload((UploadRequest)request));
+					}
+					else if(request instanceof DownloadTicketRequest) {
+						//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+						//output.writeObject(download((DownloadTicketRequest)requestObj));
+						((AESChannel) channel).sendMessageResponse(download((DownloadTicketRequest)request));
+					}
+					
+				} catch (ClassNotFoundException e) {
+					System.out.println("ClassNotFoundException, really?");
+					e.printStackTrace();
+				} catch (IOException e) {
+					if(currentUser != null) currentUser.setOnline(false);
+					System.out.println("Shut down client proxy instance");
+					return;
+				} catch (InvalidKeyException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchAlgorithmException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchPaddingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalBlockSizeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (BadPaddingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvalidAlgorithmParameterException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				
+				/*
 				else if(requestObj instanceof LogoutRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(logout());
@@ -66,14 +254,14 @@ public class ProxyImpl implements IProxy, Runnable {
 				else if(requestObj instanceof DownloadTicketRequest) {
 					ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 					output.writeObject(download((DownloadTicketRequest)requestObj));
-				}
-			} catch (ClassNotFoundException e) {
+				}*/
+			/*} catch (ClassNotFoundException e) {
 				System.out.println("ClassNotFoundException, really?");
 			} catch (IOException e) {
 				if(currentUser != null) currentUser.setOnline(false);
 				//System.out.println("Shut down client proxy instance");
 				return;
-			}
+			}*/
 		}
 	}
 
